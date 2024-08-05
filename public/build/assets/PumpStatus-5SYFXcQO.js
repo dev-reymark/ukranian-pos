@@ -1,0 +1,1 @@
+const e=(t,r)=>{if(r)return"warning";switch(t){case"PumpIdleStatus":return"default";case"PumpFillingStatus":return"primary";case"PumpEndOfTransactionStatus":return"success";case"PumpOfflineStatus":return"danger";default:return"secondary"}};export{e as getPumpStatusColor};

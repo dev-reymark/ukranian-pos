@@ -51,14 +51,14 @@ const SaleWindowTabs = ({ deliveryData, setSelectedRow, change, subtotal }) => {
                                     <TableCell>{item.Amount}</TableCell>
                                 </TableRow>
                             ))}
-                            <TableRow>
+                            {/* <TableRow>
                                 <TableCell className="font-bold">
                                     CASH
                                 </TableCell>
                                 <TableCell></TableCell>
                                 <TableCell></TableCell>
                                 <TableCell></TableCell>
-                            </TableRow>
+                            </TableRow> */}
 
                             <TableRow>
                                 <TableCell className="font-bold">
@@ -66,24 +66,66 @@ const SaleWindowTabs = ({ deliveryData, setSelectedRow, change, subtotal }) => {
                                 </TableCell>
                                 <TableCell></TableCell>
                                 <TableCell></TableCell>
-                                <TableCell>{subtotal}</TableCell>
+                                <TableCell>{'₱' + " " + subtotal}</TableCell>
                             </TableRow>
-                            <TableRow>
+                            {/* <TableRow>
                                 <TableCell className="font-bold">
                                     TOTAL PAYMENT
                                 </TableCell>
                                 <TableCell></TableCell>
                                 <TableCell></TableCell>
                                 <TableCell></TableCell>
-                            </TableRow>
-                            <TableRow>
+                            </TableRow> */}
+                            {/* <TableRow>
                                 <TableCell className="font-bold">
                                     TOTAL CHANGE
                                 </TableCell>
                                 <TableCell></TableCell>
                                 <TableCell></TableCell>
-                                <TableCell>{change}</TableCell>
-                            </TableRow>
+                                <TableCell></TableCell>
+                            </TableRow> */}
+                        </TableBody>
+                    </Table>
+                </Tab>
+
+                <Tab key="window2" title="Window 2">
+                    <Table
+                        isHeaderSticky
+                        aria-label="Transactions"
+                        selectionMode="single"
+                    >
+                        <TableHeader>
+                            <TableColumn>ITEM(S)</TableColumn>
+                            <TableColumn>PRICE</TableColumn>
+                            <TableColumn>QUANTITY</TableColumn>
+                            <TableColumn>AMOUNT</TableColumn>
+                        </TableHeader>
+                        <TableBody
+                            items={formattedItems}
+                            emptyContent="There are no transactions."
+                        >
+                            [{}]
+                        </TableBody>
+                    </Table>
+                </Tab>
+
+                <Tab key="window3" title="Window 3">
+                    <Table
+                        isHeaderSticky
+                        aria-label="Transactions"
+                        selectionMode="single"
+                    >
+                        <TableHeader>
+                            <TableColumn>ITEM(S)</TableColumn>
+                            <TableColumn>PRICE</TableColumn>
+                            <TableColumn>QUANTITY</TableColumn>
+                            <TableColumn>AMOUNT</TableColumn>
+                        </TableHeader>
+                        <TableBody
+                            items={formattedItems}
+                            emptyContent="There are no transactions."
+                        >
+                            [{}]
                         </TableBody>
                     </Table>
                 </Tab>

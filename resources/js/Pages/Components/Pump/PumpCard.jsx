@@ -242,9 +242,7 @@ const PumpCard = ({ pump, handleAppendDeliveryData }) => {
                                 setShowingPumpButtons(!showingPumpButtons)
                             }
                         >
-                            <span className="flex items-center gap-2">
-                                Pump Controls
-                            </span>
+                            CONTROLS
                         </Button>
                     </CardFooter>
                 )}

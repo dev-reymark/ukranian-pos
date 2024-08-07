@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\CashierController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\PumpController;
@@ -50,3 +51,6 @@ Route::middleware('auth:cashier')->group(function () {
 });
 
 Route::get('/test-print', [TestController::class, 'testPrint']);
+Route::get('/getitemstype', [TestController::class, 'getItemtype']);
+
+Route::get('/cashiers', [CashierController::class, 'getAllCashier']);

@@ -6,42 +6,13 @@ import { FaGasPump } from "react-icons/fa";
 import toast, { Toaster } from "react-hot-toast";
 import SaleWindowTabs from "./Components/Sale/SaleWindowTabs";
 import MOPCard from "./Components/MOP/MOPCard";
-import POSKeyboard from "./Components/Sale/POSKeyboard";
+import POSKeyboard, { buttons } from "./Components/Sale/POSKeyboard";
 import PumpCard from "./Components/Pump/PumpCard";
-
-export const buttons = [
-    {
-        label: "CLEAR",
-        color: "primary",
-        onClick: "handleClear",
-    },
-    { label: "VOID", color: "danger", onClick: "handleVoid" },
-    { label: "VOID ALL", color: "primary", onClick: "handleVoidAll" },
-    {
-        label: "REFRESH",
-        color: "primary",
-        onClick: () => window.location.reload(),
-    },
-    { label: "OPEN DRAWER", color: "primary", className: "md:text-sm" },
-    { label: "SUB-TOTAL", color: "primary" },
-    {
-        label: "PRINT RECEIPT",
-        color: "primary",
-        className: "md:text-sm",
-        onClick: "handlePrintReceipt",
-    },
-    { label: "ZERO RATED", color: "primary" },
-    { label: "PG DISC", color: "primary" },
-    { label: "ENTER", color: "primary" },
-    { label: "ALL STOP", color: "primary", onClick: "handleStopAllPumps" },
-    { label: "ALL AUTH", color: "primary", onClick: "handleAuthorizeAllPumps" },
-];
 
 export default function Home() {
     const [inputValue, setInputValue] = useState("");
     const [pumpStatus, setPumpStatus] = useState([]);
     const [mopList, setMopList] = useState([]);
-    const [authorizedPumps, setAuthorizedPumps] = useState([]);
     const [deliveryData, setDeliveryData] = useState(() => {
         const savedData = localStorage.getItem("deliveryData");
         return savedData ? JSON.parse(savedData) : [];
@@ -64,12 +35,22 @@ export default function Home() {
         });
     };
 
+    useEffect(() => {
+        // Calculate subtotal
+        const newSubtotal = deliveryData
+            .reduce((total, item) => total + parseFloat(item.Amount || 0), 0)
+            .toFixed(2);
+
+        // Update input value with subtotal
+        setInputValue(`Subtotal: ₱${newSubtotal}`);
+    }, [deliveryData]);
+
     const handleClear = () => {
         setInputValue("");
-        setTotalPaid(0);
-        localStorage.removeItem("deliveryData");
-        setDeliveryData([]);
-        setSelectedMOP(null);
+    };
+
+    const handleSubTotal = () => {
+        setInputValue(`Subtotal: ₱${subtotal}`);
     };
 
     const handleVoidAll = () => {
@@ -80,7 +61,7 @@ export default function Home() {
         setDeliveryData([]);
         localStorage.removeItem("deliveryData");
         localStorage.removeItem("disabledIds");
-        toast.success("All transactions voided successfully");
+        toast.success("All transactions voided.");
 
         // Reset change
         setTotalPaid(0);
@@ -97,7 +78,7 @@ export default function Home() {
             );
             setDeliveryData(updatedData);
             localStorage.setItem("deliveryData", JSON.stringify(updatedData));
-            toast.success("Transaction voided successfully");
+            toast.success("Transaction voided");
             setSelectedRow(null);
 
             // Recompute subtotal based on remaining items
@@ -242,6 +223,7 @@ export default function Home() {
         handleVoidAll,
         setInputValue,
         handleClear,
+        handleSubTotal,
         handlePrintReceipt,
         handleStopAllPumps,
     };
@@ -270,7 +252,7 @@ export default function Home() {
         .reduce((total, item) => total + parseFloat(item.Amount || 0), 0)
         .toFixed(2);
     // Calculate tax (12%)
-    const taxTotal = subtotal * 0.12;
+    const taxTotal = subtotal / 1.12 * 0.12;
 
     // Calculate change
     const change = totalPaid - subtotal;
@@ -302,6 +284,7 @@ export default function Home() {
                     Amount: item.Amount,
                     FuelGradeName: item.FuelGradeName,
                 })),
+                payment: inputValue
             });
 
             const transactionId = response.data.transaction;
@@ -347,45 +330,23 @@ export default function Home() {
                                 <SaleWindowTabs
                                     deliveryData={deliveryData}
                                     setSelectedRow={setSelectedRow}
-                                    change={change}
                                     subtotal={subtotal}
-                                    inputValue={inputValue}
                                 />
                             </div>
                             {/* POS Keyboard */}
                             <Card className="w-full gap-2 p-2">
-                                <div className="flex gap-2">
-                                    <Input
-                                        variant="bordered"
-                                        label={
-                                            <p className="font-bold">
-                                                SUBTOTAL
-                                            </p>
-                                        }
-                                        size="lg"
-                                        value={`₱${subtotal}`}
-                                        labelPlacement="outside-left"
-                                        className="w-[35%]"
-                                        classNames={{
-                                            input: [
-                                                "text-black text-xl font-bold text-right",
-                                            ],
-                                        }}
-                                        isReadOnly
-                                    />
-                                    <Input
-                                        variant="bordered"
-                                        className="w-[70%]"
-                                        classNames={{
-                                            input: [
-                                                "text-black text-2xl font-bold text-right",
-                                            ],
-                                        }}
-                                        value={inputValue}
-                                        isReadOnly
-                                        size="lg"
-                                    />
-                                </div>
+                                <Input
+                                    variant="faded"
+                                    classNames={{
+                                        input: [
+                                            "text-black text-2xl font-bold text-right",
+                                        ],
+                                    }}
+                                    value={inputValue}
+                                    isReadOnly
+                                    size="lg"
+                                />
+
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
                                     <POSKeyboard
                                         handleButtonClick={handleButtonClick}
@@ -420,7 +381,6 @@ export default function Home() {
                                                             handleAppendDeliveryData={
                                                                 handleAppendDeliveryData
                                                             }
-                                                            
                                                         />
                                                     ))}
                                                 </div>

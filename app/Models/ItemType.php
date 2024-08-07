@@ -14,4 +14,9 @@ class ItemType extends Model
         'Item_Type',
         'Item_Type_Descr',
     ];
+
+    public function transactionItems()
+    {
+        return $this->hasMany(TransactionItem::class, 'Item_Type', 'Item_Type');
+    }
 }

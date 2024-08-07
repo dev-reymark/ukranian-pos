@@ -9,9 +9,11 @@ import {
     TableCell,
     Tabs,
     Tab,
+    Divider,
+    Spacer,
 } from "@nextui-org/react";
 
-const SaleWindowTabs = ({ deliveryData, setSelectedRow, change, subtotal }) => {
+const SaleWindowTabs = ({ deliveryData, setSelectedRow, subtotal }) => {
     const formattedItems = Object.values(deliveryData).flat();
 
     const handleRowClick = (item) => {
@@ -51,39 +53,30 @@ const SaleWindowTabs = ({ deliveryData, setSelectedRow, change, subtotal }) => {
                                     <TableCell>{item.Amount}</TableCell>
                                 </TableRow>
                             ))}
-                            {/* <TableRow>
-                                <TableCell className="font-bold">
-                                    CASH
-                                </TableCell>
-                                <TableCell></TableCell>
-                                <TableCell></TableCell>
-                                <TableCell></TableCell>
-                            </TableRow> */}
-
                             <TableRow>
                                 <TableCell className="font-bold">
                                     TOTAL INVOICE
                                 </TableCell>
                                 <TableCell></TableCell>
                                 <TableCell></TableCell>
-                                <TableCell>{'₱' + " " + subtotal}</TableCell>
+                                <TableCell>{"₱" + " " + subtotal}</TableCell>
                             </TableRow>
-                            {/* <TableRow>
+                            <TableRow>
                                 <TableCell className="font-bold">
-                                    TOTAL PAYMENT
+                                    CASH
                                 </TableCell>
                                 <TableCell></TableCell>
                                 <TableCell></TableCell>
                                 <TableCell></TableCell>
-                            </TableRow> */}
-                            {/* <TableRow>
+                            </TableRow>
+                            <TableRow>
                                 <TableCell className="font-bold">
-                                    TOTAL CHANGE
+                                    CHANGE
                                 </TableCell>
                                 <TableCell></TableCell>
                                 <TableCell></TableCell>
                                 <TableCell></TableCell>
-                            </TableRow> */}
+                            </TableRow>
                         </TableBody>
                     </Table>
                 </Tab>

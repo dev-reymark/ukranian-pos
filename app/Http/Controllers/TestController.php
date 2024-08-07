@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ItemType;
 use Mike42\Escpos\Printer;
 use Mike42\Escpos\CapabilityProfile;
 use Mike42\Escpos\PrintConnectors\CupsPrintConnector;
@@ -130,5 +131,10 @@ class TestController extends Controller
         $formattedLabel = str_pad($label, $width - 8);
         $formattedValue = sprintf("P%7.2f", $value);
         $this->printer->text($formattedLabel . $formattedValue . "\n");
+    }
+
+    public function getItemType()
+    {
+        return ItemType::all();
     }
 }

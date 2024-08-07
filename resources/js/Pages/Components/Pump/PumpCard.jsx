@@ -248,7 +248,7 @@ const PumpCard = ({ pump, handleAppendDeliveryData }) => {
                 )}
             </Card>
             <Modal
-                placement="left"
+                placement="center"
                 classNames={{
                     backdrop:
                         "bg-gradient-to-t from-zinc-900 to-zinc-900/10 backdrop-opacity-20",

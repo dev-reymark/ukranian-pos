@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
     Input,
     Table,
@@ -9,11 +9,18 @@ import {
     TableCell,
     Tabs,
     Tab,
-    Divider,
-    Spacer,
 } from "@nextui-org/react";
 
-const SaleWindowTabs = ({ deliveryData, setSelectedRow, subtotal }) => {
+const SaleWindowTabs = ({ deliveryData, setSelectedRow, subtotal, change, inputValue, transactionSaved }) => {
+    const [showSummary, setShowSummary] = useState(false);
+
+    // Update showSummary when transaction is saved
+    React.useEffect(() => {
+        if (transactionSaved) {
+            setShowSummary(true);
+        }
+    }, [transactionSaved]);
+
     const formattedItems = Object.values(deliveryData).flat();
 
     const handleRowClick = (item) => {
@@ -33,8 +40,8 @@ const SaleWindowTabs = ({ deliveryData, setSelectedRow, subtotal }) => {
                         <TableHeader>
                             <TableColumn>ITEM(S)</TableColumn>
                             <TableColumn>PRICE</TableColumn>
-                            <TableColumn>QUANTITY</TableColumn>
-                            <TableColumn>AMOUNT</TableColumn>
+                            <TableColumn>VOLUME(L)</TableColumn>
+                            <TableColumn>AMOUNT(₱)</TableColumn>
                         </TableHeader>
                         <TableBody
                             items={formattedItems}
@@ -49,60 +56,43 @@ const SaleWindowTabs = ({ deliveryData, setSelectedRow, subtotal }) => {
                                         {item.Pump} - {item.FuelGradeName}
                                     </TableCell>
                                     <TableCell>{item.Price}</TableCell>
-                                    <TableCell>{item.Volume}</TableCell>
+                                    <TableCell>{item.Volume.toFixed(2)}</TableCell>
                                     <TableCell>{item.Amount}</TableCell>
                                 </TableRow>
                             ))}
-                            <TableRow>
-                                <TableCell className="font-bold">
-                                    TOTAL INVOICE
-                                </TableCell>
-                                <TableCell></TableCell>
-                                <TableCell></TableCell>
-                                <TableCell>{"₱" + " " + subtotal}</TableCell>
-                            </TableRow>
-                            <TableRow>
-                                <TableCell className="font-bold">
-                                    CASH
-                                </TableCell>
-                                <TableCell></TableCell>
-                                <TableCell></TableCell>
-                                <TableCell></TableCell>
-                            </TableRow>
-                            <TableRow>
-                                <TableCell className="font-bold">
-                                    CHANGE
-                                </TableCell>
-                                <TableCell></TableCell>
-                                <TableCell></TableCell>
-                                <TableCell></TableCell>
-                            </TableRow>
+                            {showSummary && (
+                                <>
+                                    <TableRow>
+                                        <TableCell className="font-bold">
+                                            TOTAL INVOICE
+                                        </TableCell>
+                                        <TableCell></TableCell>
+                                        <TableCell></TableCell>
+                                        <TableCell>{"₱" + " " + subtotal}</TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell className="font-bold">
+                                            CASH
+                                        </TableCell>
+                                        <TableCell></TableCell>
+                                        <TableCell></TableCell>
+                                        <TableCell>{"₱" + " " + inputValue}</TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell className="font-bold">
+                                            CHANGE
+                                        </TableCell>
+                                        <TableCell></TableCell>
+                                        <TableCell></TableCell>
+                                        <TableCell>{"₱" + " " + change}</TableCell>
+                                    </TableRow>
+                                </>
+                            )}
                         </TableBody>
                     </Table>
                 </Tab>
 
                 <Tab key="window2" title="Window 2">
-                    <Table
-                        isHeaderSticky
-                        aria-label="Transactions"
-                        selectionMode="single"
-                    >
-                        <TableHeader>
-                            <TableColumn>ITEM(S)</TableColumn>
-                            <TableColumn>PRICE</TableColumn>
-                            <TableColumn>QUANTITY</TableColumn>
-                            <TableColumn>AMOUNT</TableColumn>
-                        </TableHeader>
-                        <TableBody
-                            items={formattedItems}
-                            emptyContent="There are no transactions."
-                        >
-                            [{}]
-                        </TableBody>
-                    </Table>
-                </Tab>
-
-                <Tab key="window3" title="Window 3">
                     <Table
                         isHeaderSticky
                         aria-label="Transactions"

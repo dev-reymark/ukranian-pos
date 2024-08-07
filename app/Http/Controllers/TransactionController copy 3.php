@@ -41,6 +41,10 @@ class TransactionController extends Controller
             return response()->json(['error' => 'Cashier not authenticated'], 401);
         }
 
+        // Get the current maximum BIR_Trans_Number and increment it
+        $maxBIRTransNumber = Transaction::max('BIR_Trans_Number');
+        $newBIRTransNumber = $maxBIRTransNumber ? $maxBIRTransNumber + 1 : 1;
+
         // Save Transaction
         $transaction = new Transaction([
             'Tax_Total' => $validated['taxTotal'],
@@ -50,8 +54,9 @@ class TransactionController extends Controller
             'Transaction_Date' => now(),
             'Period_ID' => 1,
             'Cashier_ID' => $cashier->Cashier_ID,
+            'BIR_Trans_Number' => $newBIRTransNumber,
         ]);
-        $transaction->save(); // Save the transaction first
+        $transaction->save();
 
         // Save TransactionItems
         $itemNumber = 1;
@@ -178,30 +183,62 @@ class TransactionController extends Controller
         $this->printer->feed(1);
 
         // Get current time in Manila time and format in 12-hour format
-        $currentTime = Carbon::now('Asia/Manila')->format('Y-m-d h:i:s A');
+        $currentTime = Carbon::now('Asia/Manila')->format('Y-m-d h:i A');
+
+        // Format POS_ID with leading zeros (2 digits)
+        $formattedPOSID = sprintf("POS#%02d", $transaction->POS_ID);
+        // Format Cashier_Name and ensure it is aligned
+        $cashierName = trim($transaction->cashier->Cashier_Name);
+        $formattedCashierName = sprintf("%-20s", $cashierName);
 
         // Print date and POS #1 on one line justified between
         $this->printer->setJustification(Printer::JUSTIFY_LEFT);
-        $this->printer->text(sprintf("%-15s %15s\n", $currentTime, "POS#1"));
+        $this->printer->text(sprintf("%-15s %15s\n", $currentTime, $formattedPOSID));
+
+        // Format BIR_Trans_Number with leading zeros (9 digits)
+        $formattedBIRTransNumber = sprintf("SI #%09d", $transaction->BIR_Trans_Number);
 
         // Print "DATALOGIC" and SI number on the next line justified between
         $this->printer->setJustification(Printer::JUSTIFY_LEFT);
-        $this->printer->text(sprintf("%-20s %20s\n", "DATALOGIC", "SI #0000001"));
+        $this->printer->text(sprintf("%-20s %20s\n", $formattedCashierName, $formattedBIRTransNumber));
         $this->printer->feed(1);
 
-        // Initialize total volume
+        // Initialize totals
         $totalVolume = 0;
+        $cashTotal = 0;
+        $changeTotal = 0;
 
-        // Print items
+        // Print items, excluding CASH and CHANGE
         foreach ($transaction->items as $item) {
+            if ($item->Item_Type == 7 || $item->Item_Type == 10) {
+                // Accumulate cash and change totals
+                if ($item->Item_Type == 7) {
+                    $cashTotal = $item->Item_Value;
+                }
+                if ($item->Item_Type == 10) {
+                    $changeTotal = $item->Item_Value;
+                }
+                continue; // Skip CASH and CHANGE items
+            }
+
+            $itemDescription = trim($item->Item_Description);
+            $itemQuantity = $item->Item_Quantity;
+            $itemPrice = $item->Item_Price;
+            $itemTotal = $itemQuantity * $itemPrice;
+
+            // Print item description
+            $this->printer->text("$itemDescription\n");
+
+            // Print quantity, price per liter, and total
             $this->printer->text(sprintf(
-                "%-20s %4s x P%7.2f\n",
-                trim($item->Item_Description),
-                $item->Item_Quantity,
-                $item->Item_Price
+                "%-5s %7.2f L x P%7.2f P/L %5s\n",
+                "",
+                $itemQuantity,
+                $itemPrice,
+                sprintf("P%7.2f", $itemTotal)
             ));
 
-            $totalVolume += $item->Item_Quantity;
+            $totalVolume += $itemQuantity;
         }
         $this->printer->feed(1);
 
@@ -210,15 +247,22 @@ class TransactionController extends Controller
 
         // Print totals with justified text
         $this->printJustifiedText("Sale Total", $transaction->Sale_Total, $receiptWidth);
-        $this->printJustifiedText("CASH", $transaction->Cash_Total, $receiptWidth);
-        $this->printJustifiedText("CHANGE", $transaction->Change_Total, $receiptWidth);
+
+        // Print CASH and CHANGE if they exist
+        if ($cashTotal > 0) {
+            $this->printJustifiedText("CASH", $cashTotal, $receiptWidth);
+        }
+        if ($changeTotal > 0) {
+            $this->printJustifiedText("CHANGE", $changeTotal, $receiptWidth);
+        }
+
         $this->printer->feed(1);
 
         // Compute VATable Sale as Sale Total - VAT Amount
         $vatableSale = $transaction->Sale_Total - $transaction->Tax_Total;
 
         $this->printJustifiedText("TOTAL INVOICE", $transaction->Sale_Total, $receiptWidth);
-        $this->printJustifiedText("TOTAL VOLUME", $totalVolume . ' L', $receiptWidth);
+        $this->printJustifiedText("TOTAL VOLUME", $totalVolume, $receiptWidth);
         $this->printer->feed(1);
 
         // Print tax

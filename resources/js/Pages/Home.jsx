@@ -35,16 +35,6 @@ export default function Home() {
         });
     };
 
-    useEffect(() => {
-        // Calculate subtotal
-        const newSubtotal = deliveryData
-            .reduce((total, item) => total + parseFloat(item.Amount || 0), 0)
-            .toFixed(2);
-
-        // Update input value with subtotal
-        setInputValue(`Subtotal: ₱${newSubtotal}`);
-    }, [deliveryData]);
-
     const handleClear = () => {
         setInputValue("");
     };
@@ -252,7 +242,7 @@ export default function Home() {
         .reduce((total, item) => total + parseFloat(item.Amount || 0), 0)
         .toFixed(2);
     // Calculate tax (12%)
-    const taxTotal = subtotal / 1.12 * 0.12;
+    const taxTotal = (subtotal / 1.12) * 0.12;
 
     // Calculate change
     const change = totalPaid - subtotal;
@@ -284,7 +274,7 @@ export default function Home() {
                     Amount: item.Amount,
                     FuelGradeName: item.FuelGradeName,
                 })),
-                payment: inputValue
+                payment: inputValue,
             });
 
             const transactionId = response.data.transaction;
@@ -331,21 +321,44 @@ export default function Home() {
                                     deliveryData={deliveryData}
                                     setSelectedRow={setSelectedRow}
                                     subtotal={subtotal}
+                                    inputValue={inputValue}
+                                    change={change}
                                 />
                             </div>
                             {/* POS Keyboard */}
                             <Card className="w-full gap-2 p-2">
-                                <Input
-                                    variant="faded"
-                                    classNames={{
-                                        input: [
-                                            "text-black text-2xl font-bold text-right",
-                                        ],
-                                    }}
-                                    value={inputValue}
-                                    isReadOnly
-                                    size="lg"
-                                />
+                                <div className="flex gap-2">
+                                    <Input
+                                        variant="bordered"
+                                        label={
+                                            <p className="font-bold">
+                                                SUBTOTAL
+                                            </p>
+                                        }
+                                        size="lg"
+                                        value={`₱${subtotal}`}
+                                        labelPlacement="outside-left"
+                                        className="w-[35%]"
+                                        classNames={{
+                                            input: [
+                                                "text-black text-xl font-bold text-right",
+                                            ],
+                                        }}
+                                        isReadOnly
+                                    />
+                                    <Input
+                                        variant="bordered"
+                                        className="w-[70%]"
+                                        classNames={{
+                                            input: [
+                                                "text-black text-2xl font-bold text-right",
+                                            ],
+                                        }}
+                                        value={inputValue}
+                                        isReadOnly
+                                        size="lg"
+                                    />
+                                </div>
 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
                                     <POSKeyboard

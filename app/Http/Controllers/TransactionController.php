@@ -21,6 +21,7 @@ use Carbon\Carbon;
 class TransactionController extends Controller
 {
     private $printer;
+    private $lineLength = 40;
 
     public function storeTransaction(Request $request)
     {
@@ -171,37 +172,50 @@ class TransactionController extends Controller
             $receipt->Receipt_Header_L3,
         ];
 
+        // Collect receipt content in a variable
+        $receiptContent = '';
+
         // Print header lines
         $this->printer->setJustification(Printer::JUSTIFY_CENTER);
         foreach ($headerLines as $line) {
             $lines = explode('\\n', $line);
             foreach ($lines as $textLine) {
                 $this->printer->text(trim($textLine) . "\n");
+                $receiptContent .= trim($textLine) . "\n";
             }
         }
         $this->printer->setEmphasis(false);
         $this->printer->feed(1);
+        $receiptContent .= "\n";
 
         // Get current time in Manila time and format in 12-hour format
         $currentTime = Carbon::now('Asia/Manila')->format('Y-m-d h:i A');
 
         // Format POS_ID with leading zeros (2 digits)
-        $formattedPOSID = sprintf("POS#%02d", $transaction->POS_ID);
+        $formattedPOSID = sprintf("POS # %02d", $transaction->POS_ID);
+
         // Format Cashier_Name and ensure it is aligned
         $cashierName = trim($transaction->cashier->Cashier_Name);
         $formattedCashierName = sprintf("%-20s", $cashierName);
 
+        // Define the field widths (half of lineLength each)
+        $fieldWidth = $this->lineLength / 2;
+
         // Print date and POS #1 on one line justified between
         $this->printer->setJustification(Printer::JUSTIFY_LEFT);
-        $this->printer->text(sprintf("%-15s %15s\n", $currentTime, $formattedPOSID));
+        $this->printer->text(sprintf("%-{$fieldWidth}s %{$fieldWidth}s\n", $currentTime, $formattedPOSID));
+        $receiptContent .= sprintf("%-{$fieldWidth}s %{$fieldWidth}s\n", $currentTime, $formattedPOSID);
 
         // Format BIR_Trans_Number with leading zeros (9 digits)
         $formattedBIRTransNumber = sprintf("SI #%09d", $transaction->BIR_Trans_Number);
 
-        // Print "DATALOGIC" and SI number on the next line justified between
+        // Print Cashier_Name and BIR Trans Number on the next line justified between
         $this->printer->setJustification(Printer::JUSTIFY_LEFT);
-        $this->printer->text(sprintf("%-20s %20s\n", $formattedCashierName, $formattedBIRTransNumber));
+        $this->printer->text(sprintf("%-{$fieldWidth}s %{$fieldWidth}s\n", $formattedCashierName, $formattedBIRTransNumber));
+        $receiptContent .= sprintf("%-{$fieldWidth}s %{$fieldWidth}s\n", $formattedCashierName, $formattedBIRTransNumber);
         $this->printer->feed(1);
+        $receiptContent .= "\n";
+
 
         // Initialize totals
         $totalVolume = 0;
@@ -228,49 +242,96 @@ class TransactionController extends Controller
 
             // Print item description
             $this->printer->text("$itemDescription\n");
+            $receiptContent .= "$itemDescription\n";
 
-            // Print quantity, price per liter, and total
+            // Print quantity, price per liter, and total with Peso sign
             $this->printer->text(sprintf(
-                "%-5s %7.2f L x P%7.2f P/L %5s\n",
-                "",
+                "%6.2fL x %6.2f P/L P%6.2f\n",
                 $itemQuantity,
                 $itemPrice,
-                sprintf("P%7.2f", $itemTotal)
+                $itemTotal
             ));
+            $receiptContent .= sprintf(
+                "%6.2fL x %6.2f P/L P%6.2f\n",
+                $itemQuantity,
+                $itemPrice,
+                $itemTotal
+            );
 
             $totalVolume += $itemQuantity;
         }
         $this->printer->feed(1);
+        $receiptContent .= "\n";
 
-        // Define the receipt width
-        $receiptWidth = 40;
 
-        // Print totals with justified text
-        $this->printJustifiedText("Sale Total", $transaction->Sale_Total, $receiptWidth);
+        // Define the field width (half of lineLength each)
+        $fieldWidth = $this->lineLength / 2;
 
-        // Print CASH and CHANGE if they exist
+        // Print Sale Total
+        $this->printer->text(sprintf("%-{$fieldWidth}s %{$fieldWidth}s\n", 'Sale Total', sprintf("P%6.2f", $transaction->Sale_Total)));
+        $receiptContent .= sprintf("%-{$fieldWidth}s %{$fieldWidth}s\n", 'Sale Total', sprintf("P%6.2f", $transaction->Sale_Total));
+
+        // Print CASH if it exists
         if ($cashTotal > 0) {
-            $this->printJustifiedText("CASH", $cashTotal, $receiptWidth);
-        }
-        if ($changeTotal > 0) {
-            $this->printJustifiedText("CHANGE", $changeTotal, $receiptWidth);
+            $this->printer->text(sprintf("%-{$fieldWidth}s %{$fieldWidth}s\n", 'CASH', sprintf("P%6.2f", $cashTotal)));
+            $receiptContent .= sprintf("%-{$fieldWidth}s %{$fieldWidth}s\n", 'CASH', sprintf("P%6.2f", $cashTotal));
         }
 
+        // Print CHANGE if it exists
+        if ($changeTotal > 0) {
+            $this->printer->text(sprintf("%-{$fieldWidth}s %{$fieldWidth}s\n", 'CHANGE', sprintf("P%6.2f", $changeTotal)));
+            $receiptContent .= sprintf("%-{$fieldWidth}s %{$fieldWidth}s\n", 'CHANGE', sprintf("P%6.2f", $changeTotal));
+        }
+
+        // Add a feed for separation
         $this->printer->feed(1);
+        $receiptContent .= "\n";
+
 
         // Compute VATable Sale as Sale Total - VAT Amount
         $vatableSale = $transaction->Sale_Total - $transaction->Tax_Total;
 
-        $this->printJustifiedText("TOTAL INVOICE", $transaction->Sale_Total, $receiptWidth);
-        $this->printJustifiedText("TOTAL VOLUME", $totalVolume, $receiptWidth);
-        $this->printer->feed(1);
+        // Format TOTAL INVOICE and TOTAL VOLUME similarly to date and POS ID
+        $this->printer->setJustification(Printer::JUSTIFY_LEFT);
 
-        // Print tax
-        $this->printJustifiedText("VATable Sale", $vatableSale, $receiptWidth);
-        $this->printJustifiedText("VAT Amount", $transaction->Tax_Total, $receiptWidth);
-        $this->printJustifiedText("VAT-Exempt Sale", 0, $receiptWidth);
-        $this->printJustifiedText("Zero Rated Sale", 0, $receiptWidth);
+        // Define the field width (half of lineLength each)
+        $fieldWidth = $this->lineLength / 2;
+
+        // Print TOTAL INVOICE
+        $this->printer->text(sprintf("%-{$fieldWidth}s %{$fieldWidth}s\n", 'TOTAL INVOICE', sprintf("P%6.2f", $transaction->Sale_Total)));
+        $receiptContent .= sprintf("%-{$fieldWidth}s %{$fieldWidth}s\n", 'TOTAL INVOICE', sprintf("P%6.2f", $transaction->Sale_Total));
+
+        // Print TOTAL VOLUME
+        $this->printer->text(sprintf("%-{$fieldWidth}s %{$fieldWidth}s\n", 'TOTAL VOLUME', sprintf("%7.2fL", $totalVolume)));
+        $receiptContent .= sprintf("%-{$fieldWidth}s %{$fieldWidth}s\n", 'TOTAL VOLUME', sprintf("%7.2fL", $totalVolume));
+
+        // Add a feed for separation
         $this->printer->feed(1);
+        $receiptContent .= "\n";
+
+        // Define the field width (half of lineLength each)
+        $fieldWidth = $this->lineLength / 2;
+
+        // Print VATable Sale
+        $this->printer->text(sprintf("%-{$fieldWidth}s %{$fieldWidth}s\n", 'VATable Sale', sprintf("P%6.2f", $vatableSale)));
+        $receiptContent .= sprintf("%-{$fieldWidth}s %{$fieldWidth}s\n", 'VATable Sale', sprintf("P%6.2f", $vatableSale));
+
+        // Print VAT Amount
+        $this->printer->text(sprintf("%-{$fieldWidth}s %{$fieldWidth}s\n", 'VAT Amount', sprintf("P%6.2f", $transaction->Tax_Total)));
+        $receiptContent .= sprintf("%-{$fieldWidth}s %{$fieldWidth}s\n", 'VAT Amount', sprintf("P%6.2f", $transaction->Tax_Total));
+
+        // Print VAT-Exempt Sale (assuming zero value if not applicable)
+        $this->printer->text(sprintf("%-{$fieldWidth}s %{$fieldWidth}s\n", 'VAT-Exempt Sale', sprintf("P%6.2f", 0)));
+        $receiptContent .= sprintf("%-{$fieldWidth}s %{$fieldWidth}s\n", 'VAT-Exempt Sale', sprintf("P%6.2f", 0));
+
+        // Print Zero Rated Sale (assuming zero value if not applicable)
+        $this->printer->text(sprintf("%-{$fieldWidth}s %{$fieldWidth}s\n", 'Zero Rated Sale', sprintf("P%6.2f", 0)));
+        $receiptContent .= sprintf("%-{$fieldWidth}s %{$fieldWidth}s\n", 'Zero Rated Sale', sprintf("P%6.2f", 0));
+
+        // Add a feed for separation
+        $this->printer->feed(1);
+        $receiptContent .= "\n";
+
 
         // Print footer
         $this->printer->setJustification(Printer::JUSTIFY_CENTER);
@@ -284,34 +345,38 @@ class TransactionController extends Controller
             $lines = explode('\\n', $line);
             foreach ($lines as $textLine) {
                 $this->printer->text(trim($textLine) . "\n");
+                $receiptContent .= trim($textLine) . "\n";
             }
 
             if ($index === 0) {
                 $this->printer->feed(1);
+                $receiptContent .= "\n";
             }
         }
 
-        // Cut the receipt
-        $this->printer->cut();
+        // Define the file path
+        $filePath = storage_path("app/public/receipt_$transactionId.txt");
 
-        $this->openCashDrawer();
+        // Write content to file
+        file_put_contents($filePath, $receiptContent);
 
-        // Close the printer connection
-        $this->printer->close();
+        // Open the file with Notepad (Windows)
+        $command = "notepad " . escapeshellarg($filePath);
+        exec($command);
+
+        // // Cut the receipt
+        // $this->printer->cut();
+
+        // $this->openCashDrawer();
+
+        // // Close the printer connection
+        // $this->printer->close();
 
         return response()->json(['message' => 'Receipt printed successfully'], 200);
     }
 
     private function openCashDrawer()
     {
-
         $this->printer->pulse(0);
-    }
-
-    private function printJustifiedText($label, $value, $width)
-    {
-        $formattedLabel = str_pad($label, $width - 8);
-        $formattedValue = sprintf("P%7.2f", $value);
-        $this->printer->text($formattedLabel . $formattedValue . "\n");
     }
 }

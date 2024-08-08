@@ -1,13 +1,57 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Head } from "@inertiajs/react";
-import { Card, Tabs, Tab, Input } from "@nextui-org/react";
+import {
+    Card,
+    Tabs,
+    Tab,
+    Input,
+    Modal,
+    ModalContent,
+    ModalHeader,
+    ModalBody,
+    ModalFooter,
+    Button,
+} from "@nextui-org/react";
 import axios from "axios";
 import { FaGasPump } from "react-icons/fa";
 import toast, { Toaster } from "react-hot-toast";
 import SaleWindowTabs from "./Components/Sale/SaleWindowTabs";
 import MOPCard from "./Components/MOP/MOPCard";
-import POSKeyboard, { buttons } from "./Components/Sale/POSKeyboard";
+import POSKeyboard from "./Components/Sale/POSKeyboard";
 import PumpCard from "./Components/Pump/PumpCard";
+
+const buttons = [
+    {
+        label: "CLEAR",
+        color: "primary",
+        onClick: "handleClear",
+    },
+    { label: "VOID", color: "danger", onClick: "handleVoid" },
+    { label: "VOID ALL", color: "primary", onClick: "handleVoidAll" },
+    {
+        label: "REFRESH",
+        color: "primary",
+        onClick: () => window.location.reload(),
+    },
+    { label: "OPEN DRAWER", color: "primary", className: "md:text-sm" },
+    { label: "SUB-TOTAL", color: "primary", onClick: "handleSubTotal" },
+    {
+        label: "PRINT RECEIPT",
+        color: "primary",
+        className: "md:text-sm",
+        onClick: "handlePrintReceipt",
+    },
+    { label: "ZERO RATED", color: "primary" },
+    { label: "PG DISC", color: "primary" },
+    {
+        label: "CUSTOMER INFO",
+        color: "primary",
+        className: "md:text-sm",
+        onClick: "handleOpenCustomerDetails",
+    },
+    { label: "ALL STOP", color: "primary", onClick: "handleStopAllPumps" },
+    { label: "ALL AUTH", color: "primary", onClick: "handleAuthorizeAllPumps" },
+];
 
 export default function Home() {
     const [inputValue, setInputValue] = useState("");
@@ -25,7 +69,27 @@ export default function Home() {
     const [totalPaid, setTotalPaid] = useState(0);
     const [transactionSaved, setTransactionSaved] = useState(false);
     const [remainingBalance, setRemainingBalance] = useState(0);
+    const [isCustomerModalOpen, setCustomerModalOpen] = useState(false);
+    const [customerName, setCustomerName] = useState("");
+    const [customerAddress, setCustomerAddress] = useState("");
+    const [customerTIN, setCustomerTIN] = useState("");
+    const [customerBusinessStyle, setCustomerBusinessStyle] = useState("");
 
+    const handleOpenCustomerDetails = () => {
+        setCustomerModalOpen(true);
+    };
+
+    const handleCloseCustomerDetails = () => {
+        setCustomerModalOpen(false);
+    };
+
+    const handleSaveCustomerDetails = () => {
+        setCustomerName("");
+        setCustomerAddress("");
+        setCustomerTIN("");
+        setCustomerBusinessStyle("");
+        handleCloseCustomerDetails();
+    };
     const handleAppendDeliveryData = (pump) => {
         setDeliveryData((prevData) => {
             const updatedData = [...prevData, pump];
@@ -216,6 +280,7 @@ export default function Home() {
         handleSubTotal,
         handlePrintReceipt,
         handleStopAllPumps,
+        handleOpenCustomerDetails,
     };
 
     // Handle MOP selection
@@ -259,6 +324,11 @@ export default function Home() {
             return;
         }
 
+        console.log("Customer Name:", customerName);
+        console.log("Customer Address:", customerAddress);
+        console.log("Customer TIN:", customerTIN);
+        console.log("Customer Business Style:", customerBusinessStyle);
+
         try {
             const response = await axios.post("/store-transactions", {
                 subtotal,
@@ -275,6 +345,35 @@ export default function Home() {
                     FuelGradeName: item.FuelGradeName,
                 })),
                 payment: inputValue,
+                customer: {
+                    name: customerName,
+                    address: customerAddress,
+                    tin: customerTIN,
+                    businessStyle: customerBusinessStyle,
+                },
+            });
+
+            console.log("Payload:", {
+                subtotal,
+                taxTotal,
+                change,
+                mopName: selectedMOP.MOP_Name.trim(),
+                deliveryIds: deliveryData.map((item) => ({
+                    Delivery_ID: item.Delivery_ID,
+                    Pump: item.Pump,
+                    Nozzle: item.Nozzle,
+                    Volume: item.Volume,
+                    Price: item.Price,
+                    Amount: item.Amount,
+                    FuelGradeName: item.FuelGradeName,
+                })),
+                payment: inputValue,
+                customer: {
+                    name: customerName,
+                    address: customerAddress,
+                    tin: customerTIN,
+                    businessStyle: customerBusinessStyle,
+                },
             });
 
             const transactionId = response.data.transaction;
@@ -415,6 +514,107 @@ export default function Home() {
                     </div>
                 </main>
             </div>
+            <CustomerDetails
+                isOpen={isCustomerModalOpen}
+                onClose={handleCloseCustomerDetails}
+                onCustomerDataChange={(key, value) => {
+                    switch (key) {
+                        case "name":
+                            setCustomerName(value);
+                            break;
+                        case "address":
+                            setCustomerAddress(value);
+                            break;
+                        case "tin":
+                            setCustomerTIN(value);
+                            break;
+                        case "businessStyle":
+                            setCustomerBusinessStyle(value);
+                            break;
+                        default:
+                            break;
+                    }
+                }}
+                customerName={customerName}
+                customerAddress={customerAddress}
+                customerTIN={customerTIN}
+                customerBusinessStyle={customerBusinessStyle}
+                onSave={handleSaveCustomerDetails}
+            />
         </>
     );
 }
+
+export const CustomerDetails = ({
+    isOpen,
+    onClose,
+    onCustomerDataChange,
+    customerName,
+    customerAddress,
+    customerTIN,
+    customerBusinessStyle,
+    onSave,
+}) => {
+    return (
+        <Modal isOpen={isOpen} onOpenChange={onClose} placement="top-center">
+            <ModalContent>
+                {() => (
+                    <>
+                        <ModalHeader className="flex flex-col gap-1">
+                            Enter Customer Information
+                        </ModalHeader>
+                        <ModalBody>
+                            <Input
+                                autoFocus
+                                label="Customer Name"
+                                variant="bordered"
+                                value={customerName}
+                                onChange={(e) =>
+                                    onCustomerDataChange("name", e.target.value)
+                                }
+                            />
+                            <Input
+                                label="Address"
+                                variant="bordered"
+                                value={customerAddress}
+                                onChange={(e) =>
+                                    onCustomerDataChange(
+                                        "address",
+                                        e.target.value
+                                    )
+                                }
+                            />
+                            <Input
+                                label="TIN"
+                                variant="bordered"
+                                value={customerTIN}
+                                onChange={(e) =>
+                                    onCustomerDataChange("tin", e.target.value)
+                                }
+                            />
+                            <Input
+                                label="Business Style"
+                                variant="bordered"
+                                value={customerBusinessStyle}
+                                onChange={(e) =>
+                                    onCustomerDataChange(
+                                        "businessStyle",
+                                        e.target.value
+                                    )
+                                }
+                            />
+                        </ModalBody>
+                        <ModalFooter>
+                            <Button auto flat color="error" onClick={onClose}>
+                                Cancel
+                            </Button>
+                            <Button auto onClick={onSave}>
+                                Save
+                            </Button>
+                        </ModalFooter>
+                    </>
+                )}
+            </ModalContent>
+        </Modal>
+    );
+};

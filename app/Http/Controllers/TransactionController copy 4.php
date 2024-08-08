@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\ElectricJournal;
 use Illuminate\Http\Request;
 use App\Models\Transaction;
 use App\Models\TransactionItem;
@@ -109,8 +108,8 @@ class TransactionController extends Controller
         PumpDelivery::whereIn('Delivery_ID', $deliveryIds)
             ->update(['Is_Sold' => 1]);
 
-        $customer = $validated['customer'];
-        $this->printReceipt($transaction->Transaction_ID, $customer);
+        // Print the receipt and include customer information
+        $this->printReceipt($transaction->Transaction_ID, $validated['customer']);
 
         return response()->json([
             'message' => 'Transaction saved successfully',
@@ -157,7 +156,7 @@ class TransactionController extends Controller
         ]);
     }
 
-    public function printReceipt($transactionId, $customer = null)
+    public function printReceipt($transactionId, $customer)
     {
         // Retrieve transaction and receipt data
         $transaction = Transaction::with('items')->findOrFail($transactionId);
@@ -322,74 +321,46 @@ class TransactionController extends Controller
 
         // Print footer
         $this->printer->setJustification(Printer::JUSTIFY_CENTER);
-
-        // Print CUSTOMER DATA if available
-        if ($customer) {
-            $this->printer->setJustification(Printer::JUSTIFY_LEFT);
-            if (!empty($customer['name'])) {
-                $this->printer->text("CUSTOMER NAME: " . $customer['name'] . "\n");
-                $receiptContent .= "CUSTOMER NAME: " . $customer['name'] . "\n";
-            }
-            if (!empty($customer['address'])) {
-                $this->printer->text("ADDRESS: " . $customer['address'] . "\n");
-                $receiptContent .= "ADDRESS: " . $customer['address'] . "\n";
-            }
-            if (!empty($customer['tin'])) {
-                $this->printer->text("TIN: " . $customer['tin'] . "\n");
-                $receiptContent .= "TIN: " . $customer['tin'] . "\n";
-            }
-            if (!empty($customer['businessStyle'])) {
-                $this->printer->text("BUSINESS STYLE: " . $customer['businessStyle'] . "\n");
-                $receiptContent .= "BUSINESS STYLE: " . $customer['businessStyle'] . "\n";
-            }
-            $this->printer->feed(1);
-            $receiptContent .= "\n";
-        }
-
-        // Log customer data
-        Log::info('Customer Data', ['customer' => $customer]);
-
         $footerLines = [
             $receipt->Receipt_Footer_L1,
+            sprintf("CUSTOMER NAME: %s", $customer['name']),
+            sprintf("CUSTOMER ADDRESS: %s", $customer['address']),
+            sprintf("TIN: %s", $customer['tin']),
+            sprintf("BUSINESS STYLE: %s", $customer['businessStyle']),
             $receipt->Receipt_Footer_L2,
             $receipt->Receipt_Footer_L3,
             $receipt->Receipt_Footer_L4,
         ];
-
         foreach ($footerLines as $index => $line) {
-            // Skip printing Receipt_Footer_L1 if customer data is available
-            if ($index === 0 && $customer) {
-                continue;
-            }
-
             $lines = explode('\\n', $line);
             foreach ($lines as $textLine) {
                 $this->printer->text(trim($textLine) . "\n");
                 $receiptContent .= trim($textLine) . "\n";
             }
 
-            if ($index === 0 && !$customer) {
+            if ($index === 0) {
                 $this->printer->feed(1);
                 $receiptContent .= "\n";
             }
         }
+        
+        // Define the file path
+        $filePath = storage_path("app/public/receipt_$transactionId.txt");
 
-        // // Write the receipt content to a text file
-        // file_put_contents('receipt_test.txt', $receiptContent);
+        // Write content to file
+        file_put_contents($filePath, $receiptContent);
 
-        // // Open the text file in Notepad (for Windows)
-        // exec('notepad receipt_test.txt');
+        // Open the file with Notepad (Windows)
+        $command = "notepad " . escapeshellarg($filePath);
+        exec($command);
 
-        // Cut the receipt
-        $this->printer->cut();
+        // // Cut the receipt
+        // $this->printer->cut();
 
-        $this->openCashDrawer();
+        // $this->openCashDrawer();
 
-        // Close the printer connection
-        $this->printer->close();
-
-        // Save the receipt content to the ElectricJournal
-        $this->saveToElectricJournal($transactionId, $receiptContent);
+        // // Close the printer connection
+        // $this->printer->close();
 
         return response()->json(['message' => 'Receipt printed successfully'], 200);
     }
@@ -397,22 +368,5 @@ class TransactionController extends Controller
     private function openCashDrawer()
     {
         $this->printer->pulse(0);
-    }
-
-    private function saveToElectricJournal($transactionId, $receiptContent)
-    {
-        // Retrieve or create a new ElectricJournal entry
-        $journal = ElectricJournal::firstOrNew(['Transaction_ID' => $transactionId]);
-
-        // Ensure the Transaction_ID is set
-        $journal->Transaction_ID = $transactionId;
-        $journal->pos_id = 1;
-        $journal->Transaction_Date = Carbon::now();
-        $journal->si_number = sprintf('%09d', $transactionId);
-        $journal->Data = $receiptContent;
-        $journal->print_count = 1;
-
-        // Save the journal entry
-        $journal->save();
     }
 }

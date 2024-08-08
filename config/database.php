@@ -97,14 +97,14 @@ return [
             'sslmode' => 'prefer',
         ],
 
+        // Primary database connection
         'sqlsrv' => [
             'driver' => 'sqlsrv',
-            'url' => env('DB_URL'),
-            'host' => env('DB_HOST', 'localhost'),
+            'host' => env('DB_HOST', '127.0.0.1'),
             'port' => env('DB_PORT', '1433'),
-            'database' => env('DB_DATABASE', 'laravel'),
-            'username' => env('DB_USERNAME', 'root'),
-            'password' => env('DB_PASSWORD', ''),
+            'database' => env('DB_DATABASE', 'EnablerDB'),
+            'username' => env('DB_USERNAME', 'sa'),
+            'password' => env('DB_PASSWORD', 'p@$$w0rd'),
             'charset' => env('DB_CHARSET', 'utf8'),
             'prefix' => '',
             'prefix_indexes' => true,
@@ -112,6 +112,20 @@ return [
             'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE', 'true'),
         ],
 
+        // Secondary database connection
+        'sqlsrv_second' => [
+            'driver' => 'sqlsrv',
+            'host' => env('DB_HOST_SECOND', '127.0.0.1'),
+            'port' => env('DB_PORT_SECOND', '1433'),
+            'database' => env('DB_DATABASE_SECOND', 'VenusJournal'),
+            'username' => env('DB_USERNAME_SECOND', 'sa'),
+            'password' => env('DB_PASSWORD_SECOND', 'p@$$w0rd'),
+            'charset' => env('DB_CHARSET', 'utf8'),
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'encrypt' => env('DB_ENCRYPT', 'yes'),
+            'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE', 'true'),
+        ],
     ],
 
     /*

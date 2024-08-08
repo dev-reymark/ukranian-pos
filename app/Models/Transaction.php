@@ -49,4 +49,14 @@ class Transaction extends Model
     {
         return $this->belongsTo(POSTerminal::class, 'POS_ID', 'POS_ID');
     }
+
+    public function details()
+    {
+        return $this->hasOne(TransactionDetail::class, 'Transaction_ID', 'Transaction_ID');
+    }
+
+    public function electricJournal()
+    {
+        return $this->hasOne(ElectricJournal::class, 'Transaction_ID', 'Transaction_ID');
+    }
 }

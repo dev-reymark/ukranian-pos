@@ -36,7 +36,7 @@ Route::middleware('auth:cashier')->group(function () {
     Route::get('/get-fuel-grades', [PumpController::class, 'getFuelGradesConfiguration'])->name('fuel.grades');
     Route::get('/get-pump-nozzle', [PumpController::class, 'getNozzlesConfiguration']);
     Route::post('/stop-all-pumps', [PumpController::class, 'stopAllPumps']);
-    
+
     // FinalisationController
     Route::get('/get-mop', [FinalisationController::class, 'getMOP'])->name('getMOP');
 
@@ -48,6 +48,13 @@ Route::middleware('auth:cashier')->group(function () {
     // GradeController
     Route::post('/store-grades', [GradeController::class, 'getFuelGrades']);
     Route::get('/get-grades', [GradeController::class, 'getFuelGrades']);
+
+    // CashierController
+    Route::get('/cashiers', [CashierController::class, 'getAllCashier']);
+    Route::get('/cashier-name', [CashierController::class, 'getLoggedInCashier']);
+   
+    // Printer Controller
+    Route::get('/printer-status', [PrinterController::class, 'checkPrinterStatus']);
 });
 
 Route::get('/test-print', [TestController::class, 'testPrint']);

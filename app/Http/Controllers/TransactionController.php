@@ -17,6 +17,7 @@ use Mike42\Escpos\PrintConnectors\FilePrintConnector;
 use Exception;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
 
 class TransactionController extends Controller
 {
@@ -38,7 +39,7 @@ class TransactionController extends Controller
         Log::info($validated);
 
         // Get the currently authenticated cashier
-        $cashier = Auth()->user();
+        $cashier = Auth::user();
         if (!$cashier) {
             return response()->json(['error' => 'Cashier not authenticated'], 401);
         }

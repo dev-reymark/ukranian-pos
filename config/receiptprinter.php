@@ -10,7 +10,7 @@ return [
     | Valid values are: cups, network, windows
     |
     */
-    'connector_type' => 'windows',
+    'connector_type' => 'network',
     /*
     |--------------------------------------------------------------------------
     | Printer connector descriptor
@@ -19,7 +19,7 @@ return [
     | Typically printer name or IP address.
     |
     */
-    'connector_descriptor' => 'BIXOLONPrint',
+    'connector_descriptor' => '172.16.12.10',
     /*
     |--------------------------------------------------------------------------
     | Printer port

@@ -18,7 +18,14 @@ class LoginController extends Controller
         Log::info('Cashier from DB:', [$cashier]);
         if ($cashier && trim($cashier->Cashier_Psw) === trim($credentials['Cashier_Psw'])) {
             Auth::guard('cashier')->login($cashier);
-            return response()->json(['message' => 'Logged in successfully']);
+            // Return Cashier details along with the success message
+            return response()->json([
+                'message' => 'Logged in successfully',
+                'cashier' => [
+                    'Cashier_ID' => $cashier->Cashier_ID,
+                    'Cashier_Name' => trim($cashier->Cashier_Name), // Trim any extra spaces
+                ]
+            ]);
         }
 
         return response()->json(['error' => 'Invalid credentials'], 401);

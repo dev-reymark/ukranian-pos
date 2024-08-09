@@ -1,66 +1,91 @@
 import React from "react";
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Input, Button } from "@nextui-org/react";
 
-const CustomerDetails = ({
-    isCustomerModalOpen,
-    handleCloseCustomerDetails,
+export const CustomerDetails = ({
+    isOpen,
+    onClose,
+    onCustomerDataChange,
     customerName,
-    setCustomerName,
     customerAddress,
-    setCustomerAddress,
     customerTIN,
-    setCustomerTIN,
     customerBusinessStyle,
+    onSave,
+    setCustomerName,
+    setCustomerAddress,
+    setCustomerTIN,
     setCustomerBusinessStyle,
-    handleSaveCustomerDetails,
 }) => {
+    const handleClear = () => {
+        setCustomerName("");
+        setCustomerAddress("");
+        setCustomerTIN("");
+        setCustomerBusinessStyle("");
+    };
     return (
-        <Modal
-            isOpen={isCustomerModalOpen}
-            onClose={handleCloseCustomerDetails}
-            aria-labelledby="modal-title"
-        >
+        <Modal isOpen={isOpen} onOpenChange={onClose} placement="top-center">
             <ModalContent>
-                <ModalHeader>
-                    <p className="font-bold">Customer Information</p>
-                </ModalHeader>
-                <ModalBody>
-                    <Input
-                        label="Name"
-                        variant="bordered"
-                        value={customerName}
-                        onChange={(e) => setCustomerName(e.target.value)}
-                    />
-                    <Input
-                        label="Address"
-                        variant="bordered"
-                        value={customerAddress}
-                        onChange={(e) => setCustomerAddress(e.target.value)}
-                    />
-                    <Input
-                        label="TIN"
-                        variant="bordered"
-                        value={customerTIN}
-                        onChange={(e) => setCustomerTIN(e.target.value)}
-                    />
-                    <Input
-                        label="Business Style"
-                        variant="bordered"
-                        value={customerBusinessStyle}
-                        onChange={(e) => setCustomerBusinessStyle(e.target.value)}
-                    />
-                </ModalBody>
-                <ModalFooter>
-                    <Button onClick={handleSaveCustomerDetails} color="primary">
-                        Save
-                    </Button>
-                    <Button onClick={handleCloseCustomerDetails} color="secondary">
-                        Cancel
-                    </Button>
-                </ModalFooter>
+                {() => (
+                    <>
+                        <ModalHeader className="flex flex-col gap-1">
+                            Enter Customer Information
+                        </ModalHeader>
+                        <ModalBody>
+                            <Input
+                                autoFocus
+                                label="Customer Name"
+                                variant="bordered"
+                                value={customerName}
+                                onChange={(e) =>
+                                    onCustomerDataChange("name", e.target.value)
+                                }
+                            />
+                            <Input
+                                label="Address"
+                                variant="bordered"
+                                value={customerAddress}
+                                onChange={(e) =>
+                                    onCustomerDataChange(
+                                        "address",
+                                        e.target.value
+                                    )
+                                }
+                            />
+                            <Input
+                                label="TIN"
+                                variant="bordered"
+                                value={customerTIN}
+                                onChange={(e) =>
+                                    onCustomerDataChange("tin", e.target.value)
+                                }
+                            />
+                            <Input
+                                label="Business Style"
+                                variant="bordered"
+                                value={customerBusinessStyle}
+                                onChange={(e) =>
+                                    onCustomerDataChange(
+                                        "businessStyle",
+                                        e.target.value
+                                    )
+                                }
+                            />
+                        </ModalBody>
+                        <ModalFooter>
+                            <Button
+                                color="success"
+                                onClick={onSave}
+                                className="w-full"
+                            >
+                                SAVE
+                            </Button>
+                            <Button onClick={handleClear} className="w-full">
+                                CLEAR ALL
+                            </Button>
+                        </ModalFooter>
+                    </>
+                )}
             </ModalContent>
         </Modal>
     );
 };
 
-export default CustomerDetails;

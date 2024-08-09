@@ -1,6 +1,38 @@
 import React from "react";
 import { Button } from "@nextui-org/react";
 
+export const buttons = [
+    {
+        label: "CLEAR",
+        color: "primary",
+        onClick: "handleClear",
+    },
+    { label: "VOID", color: "danger", onClick: "handleVoid" },
+    { label: "VOID ALL", color: "primary", onClick: "handleVoidAll" },
+    {
+        label: "USER",
+        color: "primary",
+        onClick: "handleLogout",
+    },
+    { label: "OPEN DRAWER", color: "primary", className: "md:text-sm" },
+    { label: "SUB-TOTAL", color: "primary", onClick: "handleSubTotal" },
+    {
+        label: "PRINT RECEIPT",
+        color: "primary",
+        className: "md:text-sm",
+        onClick: "handlePrintReceipt",
+    },
+    { label: "ZERO RATED", color: "primary" },
+    { label: "PG DISC", color: "primary" },
+    {
+        label: "CUSTOMER INFO",
+        color: "primary",
+        className: "md:text-sm",
+        onClick: "handleOpenCustomerDetails",
+    },
+    { label: "ALL STOP", color: "primary", onClick: "handleStopAllPumps" },
+    { label: "ALL AUTH", color: "primary", onClick: "handleAuthorizeAllPumps" },
+];
 
 const POSKeyboard = ({ handleButtonClick, buttons, buttonClickHandlers, setInputValue }) => {
     return (

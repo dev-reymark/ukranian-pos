@@ -6,12 +6,7 @@ import { createInertiaApp } from "@inertiajs/react";
 import { resolvePageComponent } from "laravel-vite-plugin/inertia-helpers";
 import { NextUIProvider } from "@nextui-org/react";
 
-const appName = import.meta.env.VITE_APP_NAME || "POS";
-const displayFontStyle = {
-    fontFamily: "'Roboto Mono', monospace", // Replace with your font
-    fontSize: '1rem',
-    fontWeight: 'bold',
-};
+const appName = import.meta.env.VITE_APP_NAME || "VenusPOS";
 
 createInertiaApp({
     title: (title) => `${title} - ${appName}`,

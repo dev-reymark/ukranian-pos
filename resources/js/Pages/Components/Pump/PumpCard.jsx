@@ -17,12 +17,11 @@ import {
 import PumpDelivery from "./PumpDelivery";
 import { CheckIcon } from "../Icon";
 import { IoCloseCircle } from "react-icons/io5";
-import { RxDashboard } from "react-icons/rx";
 import { getPumpStatusColor } from "./PumpStatus";
 import axios from "axios";
 import toast from "react-hot-toast";
 
-const PumpCard = ({ pump, handleAppendDeliveryData }) => {
+export const PumpCard = ({ pump, handleAppendDeliveryData }) => {
     const showButtons =
         pump.Data.NozzleUp ||
         pump.Type === "PumpFillingStatus" ||
@@ -304,5 +303,3 @@ const PumpCard = ({ pump, handleAppendDeliveryData }) => {
         </>
     );
 };
-
-export default PumpCard;

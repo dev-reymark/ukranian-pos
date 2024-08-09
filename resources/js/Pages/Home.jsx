@@ -1,24 +1,15 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Head } from "@inertiajs/react";
 import {
-    Avatar,
+    Button,
     Card,
     CardHeader,
     CardBody,
-    CardFooter,
     Tabs,
     Tab,
     Input,
-    Modal,
-    ModalContent,
-    ModalHeader,
-    ModalBody,
-    ModalFooter,
-    Button,
-    TimeInput,
     Spacer,
     User,
-    Code,
 } from "@nextui-org/react";
 import Swal from "sweetalert2";
 import axios from "axios";
@@ -26,43 +17,13 @@ import { FaGasPump } from "react-icons/fa";
 import toast, { Toaster } from "react-hot-toast";
 import SaleWindowTabs from "./Components/Sale/SaleWindowTabs";
 import MOPCard from "./Components/MOP/MOPCard";
-import POSKeyboard from "./Components/Sale/POSKeyboard";
-import PumpCard from "./Components/Pump/PumpCard";
-import ApplicationLogo from "./Components/ApplicationLogo";
-import { Time } from "@internationalized/date";
-
-const buttons = [
-    {
-        label: "CLEAR",
-        color: "primary",
-        onClick: "handleClear",
-    },
-    { label: "VOID", color: "danger", onClick: "handleVoid" },
-    { label: "VOID ALL", color: "primary", onClick: "handleVoidAll" },
-    {
-        label: "USER",
-        color: "primary",
-        onClick: "handleLogout",
-    },
-    { label: "OPEN DRAWER", color: "primary", className: "md:text-sm" },
-    { label: "SUB-TOTAL", color: "primary", onClick: "handleSubTotal" },
-    {
-        label: "PRINT RECEIPT",
-        color: "primary",
-        className: "md:text-sm",
-        onClick: "handlePrintReceipt",
-    },
-    { label: "ZERO RATED", color: "primary" },
-    { label: "PG DISC", color: "primary" },
-    {
-        label: "CUSTOMER INFO",
-        color: "primary",
-        className: "md:text-sm",
-        onClick: "handleOpenCustomerDetails",
-    },
-    { label: "ALL STOP", color: "primary", onClick: "handleStopAllPumps" },
-    { label: "ALL AUTH", color: "primary", onClick: "handleAuthorizeAllPumps" },
-];
+import POSKeyboard, { buttons } from "./Components/Sale/POSKeyboard";
+import { PumpCard } from "./Components/Pump/PumpCard";
+import { CustomerDetails } from "./Customer/CustomerDetails";
+import { PrinterStatus } from "./Components/Printer/PrinterStatus";
+import { GetCashier } from "./Components/Cashier/GetCashier";
+import { GetDateTime } from "./Components/GetDateTime";
+import { ThemeSwitcher } from "./Components/ThemeSwitcher";
 
 export default function Home() {
     const [inputValue, setInputValue] = useState("");
@@ -85,23 +46,7 @@ export default function Home() {
     const [customerAddress, setCustomerAddress] = useState("");
     const [customerTIN, setCustomerTIN] = useState("");
     const [customerBusinessStyle, setCustomerBusinessStyle] = useState("");
-    const now = new Date();
 
-    const formatDateTime = (date) => {
-        const options = {
-            year: "numeric",
-            month: "2-digit",
-            day: "2-digit",
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit",
-            hour12: true,
-            timeZone: "Asia/Manila",
-        };
-        return new Intl.DateTimeFormat("en-US", options).format(date);
-    };
-
-    const currentDateTime = formatDateTime(now);
     const handleLogout = async () => {
         const result = await Swal.fire({
             title: "Are you sure?",
@@ -372,36 +317,8 @@ export default function Home() {
             return;
         }
 
-        console.log("Customer Name:", customerName);
-        console.log("Customer Address:", customerAddress);
-        console.log("Customer TIN:", customerTIN);
-        console.log("Customer Business Style:", customerBusinessStyle);
-
         try {
             const response = await axios.post("/store-transactions", {
-                subtotal,
-                taxTotal,
-                change,
-                mopName: selectedMOP.MOP_Name.trim(),
-                deliveryIds: deliveryData.map((item) => ({
-                    Delivery_ID: item.Delivery_ID,
-                    Pump: item.Pump,
-                    Nozzle: item.Nozzle,
-                    Volume: item.Volume,
-                    Price: item.Price,
-                    Amount: item.Amount,
-                    FuelGradeName: item.FuelGradeName,
-                })),
-                payment: inputValue,
-                customer: {
-                    name: customerName,
-                    address: customerAddress,
-                    tin: customerTIN,
-                    businessStyle: customerBusinessStyle,
-                },
-            });
-
-            console.log("Payload:", {
                 subtotal,
                 taxTotal,
                 change,
@@ -453,110 +370,31 @@ export default function Home() {
         }
     };
 
-    const [cashierName, setCashierName] = useState("");
-    const [cashierId, setCashierId] = useState("");
-    const [printerStatus, setPrinterStatus] = useState("Checking...");
-
-    useEffect(() => {
-        // Fetch logged-in cashier details
-        axios
-            .get("cashier-name")
-            .then((response) => {
-                setCashierName(response.data.Cashier_Name);
-                setCashierId(response.data.Cashier_ID);
-            })
-            .catch((error) => {
-                console.error(
-                    "There was an error fetching the cashier details!",
-                    error
-                );
-            });
-    }, []);
-
-    useEffect(() => {
-        // Fetch printer status
-        axios
-            .get("printer-status")
-            .then((response) => {
-                setPrinterStatus(response.data);
-            })
-            .catch((error) => {
-                console.error(
-                    "There was an error fetching the printer status!",
-                    error
-                );
-            });
-    }, []);
-
-    // Define styles based on status
-
-    const statusStyles = (status) => {
-        switch (status) {
-            case "Connected":
-                return "success";
-            case "Disconnected":
-                return "danger";
-            case "Checking...":
-                return "warning";
-            default:
-                return "success";
-        }
-    };
-
     return (
         <>
             <Head title="Home" />
             <audio ref={audioRef} src="assets/audio/nozzle-status-sound.wav" />
             <Toaster position="top-right" />
-            <div className="min-h-screen p-3">
+            <div className="min-h-screen dark:bg-gray-900 p-3">
                 <main className="w-full h-full mx-auto">
                     <div className="grid gap-6 lg:grid-cols-2 lg:gap-4">
-                        <Card className="flex flex-col h-full p-3">
+                        <Card className="dark:bg-gray-800 flex flex-col h-full p-3">
                             <div>
                                 <Card className="max-w-full">
                                     <CardHeader className="justify-between">
-                                        <div className="flex gap-5">
-                                            <User
-                                                name={
-                                                    <h1 className="font-semibold leading-none text-default-600">
-                                                        {cashierName}
-                                                    </h1>
-                                                }
-                                                description={
-                                                    "Cashier ID: " + cashierId
-                                                }
-                                                avatarProps={{
-                                                    src: "/assets/img/cashier.png",
-                                                }}
-                                            />
-                                        </div>
-                                        <Input
-                                            isReadOnly
-                                            color="default"
-                                            variant="flat"
-                                            label="Server Time (Asia/Manila)"
-                                            value={currentDateTime}
-                                            className="w-[25%]"
-                                        />
+                                        <GetCashier />
+                                        <GetDateTime />
                                     </CardHeader>
                                     <CardBody className="justify-between">
                                         <div className="flex gap-4">
                                             <Input
-                                                className="w-[70%]"
+                                                className="w-[75%]"
                                                 size="lg"
                                                 value="POS status"
                                                 isReadOnly
                                             />
-                                            <Input
-                                                className="w-[30%]"
-                                                isReadOnly
-                                                label="Printer Status"
-                                                color={statusStyles(
-                                                    printerStatus
-                                                )}
-                                                size="sm"
-                                                value={printerStatus}
-                                            />
+                                            <PrinterStatus />
+                                            <ThemeSwitcher />
                                         </div>
                                     </CardBody>
                                 </Card>
@@ -578,14 +416,14 @@ export default function Home() {
                                     <Input
                                         variant="bordered"
                                         label={
-                                            <p className="font-bold">
+                                            <p className="font-bold text-xl">
                                                 SUBTOTAL
                                             </p>
                                         }
                                         size="lg"
                                         value={`₱${subtotal}`}
                                         labelPlacement="outside-left"
-                                        className="w-[35%]"
+                                        className="w-[40%]"
                                         classNames={{
                                             input: [
                                                 "text-black text-xl font-bold text-right",
@@ -595,7 +433,7 @@ export default function Home() {
                                     />
                                     <Input
                                         variant="bordered"
-                                        className="w-[70%]"
+                                        className="w-[60%]"
                                         classNames={{
                                             input: [
                                                 "text-black text-2xl font-bold text-right",
@@ -619,8 +457,8 @@ export default function Home() {
                                 </div>
                             </Card>
                         </Card>
-                        {/* Pumps and other components */}
-                        <Card className="flex items-start gap-4 rounded-lg bg-white p-6 shadow-[0px_14px_34px_0px_rgba(0,0,0,0.08)] ring-1 ring-white/[0.05] lg:pb-10">
+                        {/* Pumps */}
+                        <Card className="dark:bg-gray-800  flex items-start gap-4 rounded-lg bg-white p-6 shadow-[0px_14px_34px_0px_rgba(0,0,0,0.08)] ring-1 ring-white/[0.05] lg:pb-10">
                             <div className="flex w-full flex-col">
                                 <Tabs aria-label="Options" fullWidth>
                                     <Tab key="pumps" title="PUMPS">
@@ -694,91 +532,3 @@ export default function Home() {
         </>
     );
 }
-
-export const CustomerDetails = ({
-    isOpen,
-    onClose,
-    onCustomerDataChange,
-    customerName,
-    customerAddress,
-    customerTIN,
-    customerBusinessStyle,
-    onSave,
-    setCustomerName,
-    setCustomerAddress,
-    setCustomerTIN,
-    setCustomerBusinessStyle,
-}) => {
-    const handleClear = () => {
-        setCustomerName("");
-        setCustomerAddress("");
-        setCustomerTIN("");
-        setCustomerBusinessStyle("");
-    };
-    return (
-        <Modal isOpen={isOpen} onOpenChange={onClose} placement="top-center">
-            <ModalContent>
-                {() => (
-                    <>
-                        <ModalHeader className="flex flex-col gap-1">
-                            Enter Customer Information
-                        </ModalHeader>
-                        <ModalBody>
-                            <Input
-                                autoFocus
-                                label="Customer Name"
-                                variant="bordered"
-                                value={customerName}
-                                onChange={(e) =>
-                                    onCustomerDataChange("name", e.target.value)
-                                }
-                            />
-                            <Input
-                                label="Address"
-                                variant="bordered"
-                                value={customerAddress}
-                                onChange={(e) =>
-                                    onCustomerDataChange(
-                                        "address",
-                                        e.target.value
-                                    )
-                                }
-                            />
-                            <Input
-                                label="TIN"
-                                variant="bordered"
-                                value={customerTIN}
-                                onChange={(e) =>
-                                    onCustomerDataChange("tin", e.target.value)
-                                }
-                            />
-                            <Input
-                                label="Business Style"
-                                variant="bordered"
-                                value={customerBusinessStyle}
-                                onChange={(e) =>
-                                    onCustomerDataChange(
-                                        "businessStyle",
-                                        e.target.value
-                                    )
-                                }
-                            />
-                        </ModalBody>
-                        <ModalFooter>
-                            <Button
-                                color="success"
-                                onClick={onSave}
-                                className="w-full"
-                            >
-                                SAVE
-                            </Button>
-                            <Button onClick={handleClear} className="w-full">
-                                CLEAR ALL
-                            </Button>
-                        </ModalFooter>
-                    </>
-                )}
-            </ModalContent>
-        </Modal>
-    );
-};

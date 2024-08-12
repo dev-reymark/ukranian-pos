@@ -26,7 +26,7 @@ export const CustomerDetails = ({
             <ModalContent>
                 {() => (
                     <>
-                        <ModalHeader className="flex flex-col gap-1">
+                        <ModalHeader className="dark:text-black">
                             Enter Customer Information
                         </ModalHeader>
                         <ModalBody>
@@ -76,10 +76,10 @@ export const CustomerDetails = ({
                                 onClick={onSave}
                                 className="w-full"
                             >
-                                SAVE
+                                Continue
                             </Button>
                             <Button onClick={handleClear} className="w-full">
-                                CLEAR ALL
+                                Clear All
                             </Button>
                         </ModalFooter>
                     </>

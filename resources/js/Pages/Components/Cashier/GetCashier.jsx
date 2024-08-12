@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { User } from "@nextui-org/react";
+import { Chip, User } from "@nextui-org/react";
 import axios from "axios";
 
 export const GetCashier = () => {
@@ -37,4 +37,20 @@ export const GetCashier = () => {
             />
         </div>
     );
+};
+
+export const ShiftSchedule = () => {
+    const currentHour = new Date().getHours();
+
+    let shiftName;
+
+    if (currentHour >= 6 && currentHour < 14) {
+        shiftName = "1st Shift (6 AM - 2 PM)";
+    } else if (currentHour >= 14 && currentHour < 22) {
+        shiftName = "2nd Shift (2 PM - 10 PM)";
+    } else {
+        shiftName = "GY (10 PM - 6 AM)";
+    }
+
+    return <Chip size="sm">{shiftName}</Chip>;
 };

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Transaction extends Model
 {
+    protected $connection = 'sqlsrv';
     protected $table = 'Transactions';
 
     protected $primaryKey = 'Transaction_ID';

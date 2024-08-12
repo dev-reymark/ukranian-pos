@@ -1,0 +1,1 @@
+import{r as u}from"./app-B13YKW_w.js";function a(s){const n=u.useRef(null);return u.useImperativeHandle(s,()=>n.current),n}function e(s,n){return s&&n&&s.x<n.x+n.width&&s.x+s.width>n.x&&s.y<n.y+n.height&&s.y+s.height>n.y}export{e as a,a as u};

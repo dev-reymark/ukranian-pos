@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
     Card,
     CardHeader,
@@ -33,6 +33,16 @@ export const PumpCard = ({ pump, handleAppendDeliveryData }) => {
     };
     const [showingPumpButtons, setShowingPumpButtons] = useState(false);
     const [authorizedPumps, setAuthorizedPumps] = useState([]);
+
+    const handleNozzleUp = (pumpId) => {
+        toast.success(`Nozzle is up for Pump ${pumpId}`);
+    };
+
+    useEffect(() => {
+        if (pump.Data.NozzleUp) {
+            handleNozzleUp(pump.Id);
+        }
+    }, [pump.Data.NozzleUp]);
 
     const authorizePump = async (pumpData) => {
         try {

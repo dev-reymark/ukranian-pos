@@ -24,6 +24,8 @@ import { PrinterStatus } from "./Components/Printer/PrinterStatus";
 import { GetCashier } from "./Components/Cashier/GetCashier";
 import { GetDateTime } from "./Components/GetDateTime";
 import { ThemeSwitcher } from "./Components/ThemeSwitcher";
+import Config from "./Config/Index";
+import Index from "./Config/Index";
 
 export default function Home() {
     const [inputValue, setInputValue] = useState("");
@@ -46,6 +48,7 @@ export default function Home() {
     const [customerAddress, setCustomerAddress] = useState("");
     const [customerTIN, setCustomerTIN] = useState("");
     const [customerBusinessStyle, setCustomerBusinessStyle] = useState("");
+    const toastContainerRef = React.useRef();
 
     const handleLogout = async () => {
         const result = await Swal.fire({
@@ -374,7 +377,7 @@ export default function Home() {
         <>
             <Head title="Home" />
             <audio ref={audioRef} src="assets/audio/nozzle-status-sound.wav" />
-            <Toaster position="top-right" />
+            {/* <Toaster position="top-right" /> */}
             <div className="min-h-screen dark:bg-gray-900 p-3">
                 <main className="w-full h-full mx-auto">
                     <div className="grid gap-6 lg:grid-cols-2 lg:gap-4">
@@ -387,12 +390,9 @@ export default function Home() {
                                     </CardHeader>
                                     <CardBody className="justify-between">
                                         <div className="flex gap-4">
-                                            <Input
-                                                className="w-[75%]"
-                                                size="lg"
-                                                value="POS status"
-                                                isReadOnly
-                                            />
+                                            <div className="w-[70%] bg-slate-200 rounded-lg shadow-sm relative">
+                                                <Toaster position="top-right" />
+                                            </div>
                                             <PrinterStatus />
                                             <ThemeSwitcher />
                                         </div>
@@ -491,6 +491,10 @@ export default function Home() {
                                             mopList={mopList}
                                             onSelectMOP={handleSelectMOP}
                                         />
+                                    </Tab>
+
+                                    <Tab key="config" title="Config">
+                                        <Index />
                                     </Tab>
                                 </Tabs>
                             </div>

@@ -10,6 +10,7 @@ use App\Http\Controllers\GradeController;
 use App\Http\Controllers\PrinterController;
 use App\Http\Controllers\TestController;
 use App\Http\Controllers\TransactionController;
+use App\Http\Controllers\ElectricJournalController;
 
 // Public Routes
 Route::get('/', function () {
@@ -52,9 +53,12 @@ Route::middleware('auth:cashier')->group(function () {
     // CashierController
     Route::get('/cashiers', [CashierController::class, 'getAllCashier']);
     Route::get('/cashier-name', [CashierController::class, 'getLoggedInCashier']);
-   
+
     // Printer Controller
     Route::get('/printer-status', [PrinterController::class, 'checkPrinterStatus']);
+
+    // Electronic Journal Controller
+    Route::get('/get-journals', [ElectricJournalController::class, 'getJournal']);
 });
 
 Route::get('/test-print', [TestController::class, 'testPrint']);

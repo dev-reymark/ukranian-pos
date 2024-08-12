@@ -2,6 +2,7 @@ import axios from "axios";
 import { useState } from "react";
 import { Head } from "@inertiajs/react";
 import {
+    Code,
     Card,
     CardHeader,
     CardBody,
@@ -72,14 +73,17 @@ function Login() {
             <Toaster position="top-right" />
             <div className="flex items-center justify-center min-h-screen p-3">
                 <Card className="max-w-md w-full">
-                    <CardHeader className="flex gap-3">
-                        <ApplicationLogo />
-                        <div className="flex flex-col">
-                            <p className="text-md">POS WEB</p>
-                            <p className="text-small text-default-500">
-                                Datalogic Systems Corporation
-                            </p>
+                    <CardHeader className="flex gap-3 justify-between">
+                        <div className="flex gap-3">
+                            <ApplicationLogo />
+                            <div className="flex flex-col">
+                                <p className="text-md font-bold">VENUS POS</p>
+                                <p className="text-small font-semibold text-default-500">
+                                    Datalogic Systems Corporation
+                                </p>
+                            </div>
                         </div>
+                        <Code color="warning">Version 1.0</Code>
                     </CardHeader>
                     <Divider />
                     <Spacer y={4} />

@@ -9,7 +9,7 @@ export const GetCashier = () => {
     useEffect(() => {
         // Fetch logged-in cashier details
         axios
-            .get("cashier-name")
+            .get("/cashier-name")
             .then((response) => {
                 setCashierName(response.data.Cashier_Name);
                 setCashierId(response.data.Cashier_ID);

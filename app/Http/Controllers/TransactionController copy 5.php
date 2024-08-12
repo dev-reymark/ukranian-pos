@@ -27,7 +27,7 @@ class TransactionController extends Controller
     public function storeTransaction(Request $request)
     {
         $validated = $request->validate([
-            'mopNames' => 'nullable|array',
+            'mopName' => 'required|string',
             'taxTotal' => 'required|numeric',
             'change' => 'required|numeric',
             'subtotal' => 'required|numeric',
@@ -78,20 +78,18 @@ class TransactionController extends Controller
             $itemNumber++;
         }
 
-        // Add `mopName`
-        foreach ($validated['mopNames'] as $mopName) {
-            TransactionItem::create([
-                'Transaction_ID' => $transaction->Transaction_ID,
-                'Item_Description' => $mopName,
-                'Item_Number' => $itemNumber,
-                'Item_Type' => 7, //Mop
-                'Item_Price' => 0,
-                'Item_Quantity' => 0,
-                'Item_Value' => $validated['payment'],
-            ]);
-            $itemNumber++;
-        }
-        // Add `change'
+        // Add `mopName` and `change` as separate items
+        TransactionItem::create([
+            'Transaction_ID' => $transaction->Transaction_ID,
+            'Item_Description' => $validated['mopName'],
+            'Item_Number' => $itemNumber,
+            'Item_Type' => 7, //Mop
+            'Item_Price' => 0,
+            'Item_Quantity' => 0,
+            'Item_Value' => $validated['payment'],
+        ]);
+        $itemNumber++;
+
         TransactionItem::create([
             'Transaction_ID' => $transaction->Transaction_ID,
             'Item_Description' => 'Change',
@@ -111,6 +109,9 @@ class TransactionController extends Controller
         // Update Is_Sold to 1 for relevant PumpDeliveries
         PumpDelivery::whereIn('Delivery_ID', $deliveryIds)
             ->update(['Is_Sold' => 1]);
+
+        $customer = $validated['customer'];
+        $this->printReceipt($transaction->Transaction_ID, $customer);
 
         return response()->json([
             'message' => 'Transaction saved successfully',
@@ -157,7 +158,7 @@ class TransactionController extends Controller
         ]);
     }
 
-    public function printReceipt($transactionId)
+    public function printReceipt($transactionId, $customer = null)
     {
         // Retrieve transaction and receipt data
         $transaction = Transaction::with('items')->findOrFail($transactionId);
@@ -322,20 +323,55 @@ class TransactionController extends Controller
 
         // Print footer
         $this->printer->setJustification(Printer::JUSTIFY_CENTER);
+
+        // Print CUSTOMER DATA if available
+        if ($customer) {
+            $this->printer->setJustification(Printer::JUSTIFY_LEFT);
+            if (!empty($customer['name'])) {
+                $this->printer->text("CUSTOMER NAME: " . $customer['name'] . "\n");
+                $receiptContent .= "CUSTOMER NAME: " . $customer['name'] . "\n";
+            }
+            if (!empty($customer['address'])) {
+                $this->printer->text("ADDRESS: " . $customer['address'] . "\n");
+                $receiptContent .= "ADDRESS: " . $customer['address'] . "\n";
+            }
+            if (!empty($customer['tin'])) {
+                $this->printer->text("TIN: " . $customer['tin'] . "\n");
+                $receiptContent .= "TIN: " . $customer['tin'] . "\n";
+            }
+            if (!empty($customer['businessStyle'])) {
+                $this->printer->text("BUSINESS STYLE: " . $customer['businessStyle'] . "\n");
+                $receiptContent .= "BUSINESS STYLE: " . $customer['businessStyle'] . "\n";
+            }
+            $this->printer->feed(1);
+            $receiptContent .= "\n";
+        }
+
+        // Log customer data
+        Log::info('Customer Data', ['customer' => $customer]);
+
         $footerLines = [
             $receipt->Receipt_Footer_L1,
             $receipt->Receipt_Footer_L2,
             $receipt->Receipt_Footer_L3,
             $receipt->Receipt_Footer_L4,
         ];
+
         foreach ($footerLines as $index => $line) {
+            // Skip printing Receipt_Footer_L1 if customer data is available
+            if ($index === 0 && $customer) {
+                continue;
+            }
+
             $lines = explode('\\n', $line);
             foreach ($lines as $textLine) {
                 $this->printer->text(trim($textLine) . "\n");
+                $receiptContent .= trim($textLine) . "\n";
             }
 
-            if ($index === 0) {
+            if ($index === 0 && !$customer) {
                 $this->printer->feed(1);
+                $receiptContent .= "\n";
             }
         }
 

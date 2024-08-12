@@ -21,8 +21,11 @@ import {
     Pagination,
 } from "@nextui-org/react";
 import axios from "axios";
+import { AiOutlineClose } from "react-icons/ai";
 
 function ElectricJournal({ isOpen, onOpenChange }) {
+    const [selectedDate, setSelectedDate] = useState(null);
+    const [selectedTime, setSelectedTime] = useState(null);
     const [journalList, setJournalList] = useState([]);
     const [selectedItem, setSelectedItem] = useState(null);
     const [error, setError] = useState(null);
@@ -42,7 +45,7 @@ function ElectricJournal({ isOpen, onOpenChange }) {
         const getJournal = async () => {
             try {
                 const response = await axios.get("/get-journals");
-                console.log(response.data); // Check the structure
+                console.log(response.data);
                 if (Array.isArray(response.data.data)) {
                     setJournalList(response.data.data);
                 } else {
@@ -61,12 +64,51 @@ function ElectricJournal({ isOpen, onOpenChange }) {
         setSelectedItem(item);
     };
 
+    const handleDateChange = (date) => {
+        setSelectedDate(date);
+        applyFilters(date, selectedTime);
+    };
+
+    const handleTimeChange = (time) => {
+        setSelectedTime(time);
+        applyFilters(selectedDate, time);
+    };
+
+    const applyFilters = (date, time) => {
+        if (!date && !time) {
+            setJournalList(originalJournalList);
+            return;
+        }
+
+        let filteredList = originalJournalList;
+
+        if (date) {
+            filteredList = filteredList.filter(
+                (item) =>
+                    new Date(item.Transaction_Date).toDateString() ===
+                    date.toDateString()
+            );
+        }
+
+        if (time) {
+            filteredList = filteredList.filter(
+                (item) =>
+                    new Date(item.Transaction_Date).getHours() ===
+                        time.getHours() &&
+                    new Date(item.Transaction_Date).getMinutes() ===
+                        time.getMinutes()
+            );
+        }
+
+        setJournalList(filteredList);
+    };
+
     return (
         <Modal
             size="5xl"
             isOpen={isOpen}
             onOpenChange={onOpenChange}
-            scrollBehavior="outside"
+            scrollBehavior="inside"
         >
             <ModalContent>
                 {(onClose) => (
@@ -188,9 +230,13 @@ function ElectricJournal({ isOpen, onOpenChange }) {
                                         <Button
                                             className="w-full"
                                             color="secondary"
-                                            onClick={() =>
-                                                console.log("Reset function")
-                                            }
+                                            onClick={() => {
+                                                setSelectedDate(null);
+                                                setSelectedTime(null);
+                                                setJournalList(
+                                                    originalJournalList
+                                                );
+                                            }}
                                         >
                                             Reset Search
                                         </Button>
@@ -200,33 +246,54 @@ function ElectricJournal({ isOpen, onOpenChange }) {
                                         <DatePicker
                                             label="Select date"
                                             className="w-full"
+                                            value={selectedDate}
+                                            onChange={handleDateChange}
                                         />
                                         <TimeInput
                                             label="Select time"
                                             className="w-full"
+                                            value={selectedTime}
+                                            onChange={handleTimeChange}
                                         />
                                     </CardBody>
+
                                     <Divider />
                                 </Card>
                             </div>
                             <Card className="w-full">
-                                <CardHeader className="flex gap-3">
+                                <CardHeader className="flex gap-3 justify-between items-center">
                                     <div className="flex flex-col">
                                         <p className="text-small text-default-500">
                                             Here you can see transaction
                                             details.
                                         </p>
                                     </div>
+                                    <Button
+                                        color="warning"
+                                        size="sm"
+                                        onClick={() => setSelectedItem(null)}
+                                        isIconOnly
+                                    >
+                                        <AiOutlineClose />
+                                    </Button>
                                 </CardHeader>
+
                                 <Divider />
                                 <CardBody>
                                     {selectedItem ? (
-                                        <pre>
-                                            {JSON.stringify(
-                                                selectedItem.Data,
-                                                null,
-                                                2
-                                            )}
+                                        <pre
+                                            style={{
+                                                whiteSpace: "pre-wrap",
+                                                wordWrap: "break-word",
+                                                fontFamily: "monospace",
+                                                lineHeight: "1.5",
+                                                color: "#333",
+                                                padding: "10px",
+                                                backgroundColor: "#f4f4f4",
+                                                borderRadius: "4px",
+                                            }}
+                                        >
+                                            {selectedItem.Data}
                                         </pre>
                                     ) : (
                                         <p>
@@ -235,6 +302,7 @@ function ElectricJournal({ isOpen, onOpenChange }) {
                                         </p>
                                     )}
                                 </CardBody>
+
                                 <Divider />
                             </Card>
                         </ModalBody>

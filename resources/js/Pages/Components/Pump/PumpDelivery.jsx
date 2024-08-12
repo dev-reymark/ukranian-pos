@@ -215,16 +215,23 @@ export default function PumpDelivery({ pumpId, onAppend, disabled }) {
                                                                 {pump.Nozzle}
                                                             </TableCell>
                                                             <TableCell>
-                                                                {pump.FuelGradeName}
+                                                                {
+                                                                    pump.FuelGradeName
+                                                                }
                                                             </TableCell>
                                                             <TableCell>
-                                                                {pump.Volume}
+                                                                {pump.Volume.toFixed(
+                                                                    2
+                                                                )}
+                                                                L
                                                             </TableCell>
                                                             <TableCell>
                                                                 {pump.Price}
                                                             </TableCell>
                                                             <TableCell>
-                                                                {pump.Amount}
+                                                                {pump.Amount.toFixed(
+                                                                    2
+                                                                )}
                                                             </TableCell>
                                                         </TableRow>
                                                     ))}

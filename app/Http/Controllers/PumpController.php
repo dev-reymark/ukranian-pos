@@ -9,6 +9,47 @@ use Illuminate\Support\Facades\Log;
 
 class PumpController extends Controller
 {
+    public function setUserConfiguration()
+    {
+        $payload = [
+            'Users' => [
+                [
+                    'Id' => 1,
+                    'Login' => 'admin',
+                    'Password' => 'admin',
+                    'Permissions' => [
+                        'Configuration' => true,
+                        'Control' => true,
+                        'Monitoring' => true,
+                        'Reports' => true
+                    ]
+                ]
+            ]
+        ];
+
+        $response = Http::withHeaders([
+            'Content-Type' => 'application/json',
+            'Authorization' => 'Basic ' . base64_encode('admin:admin')
+        ])->post('http://172.16.12.200/jsonPTS', [
+            'Protocol' => 'jsonPTS',
+            'Packets' => [
+                [
+                    'Id' => 1,
+                    'Type' => 'SetUsersConfiguration',
+                    'Data' => $payload
+                ]
+            ]
+        ]);
+
+        if ($response->successful()) {
+            return response()->json($response->json());
+        } else {
+            return response()->json([
+                'error' => 'Failed to set users configuration',
+                'message' => $response->body()
+            ], $response->status());
+        }
+    }
     public function getPumpStatus(Request $request)
     {
         $pumpCount = 20;

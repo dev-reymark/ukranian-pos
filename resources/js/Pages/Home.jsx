@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Head } from "@inertiajs/react";
 import {
-    Button,
     Card,
     CardHeader,
     CardBody,
@@ -9,7 +8,6 @@ import {
     Tab,
     Input,
     Spacer,
-    User,
 } from "@nextui-org/react";
 import Swal from "sweetalert2";
 import axios from "axios";
@@ -24,7 +22,6 @@ import { PrinterStatus } from "./Components/Printer/PrinterStatus";
 import { GetCashier } from "./Components/Cashier/GetCashier";
 import { GetDateTime } from "./Components/GetDateTime";
 import { ThemeSwitcher } from "./Components/ThemeSwitcher";
-import Config from "./Config/Index";
 import Index from "./Config/Index";
 
 export default function Home() {
@@ -48,7 +45,7 @@ export default function Home() {
     const [customerAddress, setCustomerAddress] = useState("");
     const [customerTIN, setCustomerTIN] = useState("");
     const [customerBusinessStyle, setCustomerBusinessStyle] = useState("");
-    const toastContainerRef = React.useRef();
+    const [change, setChange] = useState(0);
 
     const handleLogout = async () => {
         const result = await Swal.fire({
@@ -106,6 +103,7 @@ export default function Home() {
             return;
         }
         setDeliveryData([]);
+        localStorage.removeItem("transaction");
         localStorage.removeItem("deliveryData");
         localStorage.removeItem("disabledIds");
         toast.success("All transactions voided.");
@@ -282,20 +280,69 @@ export default function Home() {
     // Handle MOP selection
     const handleSelectMOP = async (mop) => {
         console.log("MOP selected:", mop);
+
         // Check if there is an amount input
-        if (
-            inputValue === "" ||
-            parseFloat(inputValue.replace("₱", "").replace(",", "")) <= 0
-        ) {
+        const currentPayment = parseFloat(
+            inputValue.replace("₱", "").replace(",", "")
+        );
+        if (inputValue === "" || currentPayment <= 0) {
             toast.error(
                 "Please enter an amount before selecting a method of payment."
             );
             return;
         }
-        setSelectedMOP(mop);
 
-        // Trigger save transaction when an MOP is selected
-        await saveTransaction();
+        // Retrieve existing transaction from local storage or initialize a new one
+        const existingTransaction = JSON.parse(
+            localStorage.getItem("transaction")
+        ) || {
+            subtotal: parseFloat(subtotal),
+            payments: [],
+            remainingBalance: parseFloat(subtotal),
+            deliveryIds: deliveryData.map((item) => item.Delivery_ID),
+        };
+
+        const newRemainingBalance =
+            existingTransaction.remainingBalance - currentPayment;
+
+        if (newRemainingBalance >= 0) {
+            // Update local storage with the new payment
+            existingTransaction.payments.push({
+                mopName: mop.MOP_Name,
+                amount: currentPayment,
+            });
+            existingTransaction.remainingBalance = newRemainingBalance;
+            localStorage.setItem(
+                "transaction",
+                JSON.stringify(existingTransaction)
+            );
+
+            if (newRemainingBalance === 0) {
+                // Full payment received, save the transaction to the database
+                await saveTransaction();
+            } else {
+                setInputValue(`Amount Due: ₱${newRemainingBalance.toFixed(2)}`);
+            }
+        } else {
+            // Handle case where payment exceeds the remaining balance
+            const change = Math.abs(newRemainingBalance).toFixed(2);
+            toast.success(
+                `Payment exceeds the remaining balance. Change: ₱${change}`
+            );
+            setInputValue(`Change: ₱${change}`);
+
+            // Save the transaction, considering the full payment
+            existingTransaction.payments.push({
+                mopName: mop.MOP_Name,
+                amount: currentPayment,
+            });
+            existingTransaction.remainingBalance = 0;
+            localStorage.setItem(
+                "transaction",
+                JSON.stringify(existingTransaction)
+            );
+            await saveTransaction();
+        }
     };
 
     // Calculate subtotal
@@ -305,27 +352,29 @@ export default function Home() {
     // Calculate tax (12%)
     const taxTotal = (subtotal / 1.12) * 0.12;
 
-    // Calculate change
-    const change = totalPaid - subtotal;
-
     // Save transaction with selected MOP
     const saveTransaction = async () => {
-        if (!selectedMOP) {
-            toast.error("Please select a method of payment");
-            return;
-        }
-
-        if (deliveryData.length === 0) {
-            toast.error("No transactions to save");
+        const transactionData = JSON.parse(localStorage.getItem("transaction"));
+        if (!transactionData) {
+            toast.error("No transaction data found");
             return;
         }
 
         try {
             const response = await axios.post("/store-transactions", {
-                subtotal,
-                taxTotal,
-                change,
-                mopName: selectedMOP.MOP_Name.trim(),
+                subtotal: transactionData.subtotal,
+                taxTotal: (transactionData.subtotal / 1.12) * 0.12,
+                change:
+                    parseFloat(
+                        (totalPaid - transactionData.subtotal).toFixed(2)
+                    ) > 0
+                        ? parseFloat(
+                              (totalPaid - transactionData.subtotal).toFixed(2)
+                          )
+                        : 0,
+                mopNames: transactionData.payments.map((payment) =>
+                    payment.mopName.trim()
+                ),
                 deliveryIds: deliveryData.map((item) => ({
                     Delivery_ID: item.Delivery_ID,
                     Pump: item.Pump,
@@ -335,7 +384,10 @@ export default function Home() {
                     Amount: item.Amount,
                     FuelGradeName: item.FuelGradeName,
                 })),
-                payment: inputValue,
+                payment: transactionData.payments.reduce(
+                    (acc, payment) => acc + payment.amount,
+                    0
+                ),
                 customer: {
                     name: customerName,
                     address: customerAddress,
@@ -348,22 +400,12 @@ export default function Home() {
             if (transactionId) {
                 toast.success("Transaction saved successfully");
                 setTransactionSaved(true);
-                const remaining = subtotal - totalPaid;
-                setRemainingBalance(remaining);
-                if (remaining > 0) {
-                    setInputValue(`Amount Due: ₱${remaining.toFixed(2)}`);
-                } else {
-                    setInputValue(`Change: ₱${Math.abs(remaining).toFixed(2)}`);
-                }
-                // setDeliveryData([]);
-                setSelectedMOP(null);
-                setTotalPaid(0);
+                setRemainingBalance(0);
+                setInputValue("Transaction Complete");
+                // Clear local storage after saving
+                localStorage.removeItem("transaction");
 
-                // localStorage.removeItem("deliveryData");
-                // localStorage.removeItem("disabledIds");
-
-                // Print the receipt after saving the transaction
-                await handlePrintReceipt(transactionId);
+                handlePrintReceipt(transactionId);
             } else {
                 toast.error("Error retrieving transaction ID");
             }
@@ -371,6 +413,15 @@ export default function Home() {
             toast.error("Error saving transaction");
             console.error("Error saving transaction:", error);
         }
+    };
+
+    const resetTransactionData = () => {
+        localStorage.removeItem("transaction");
+        setInputValue("");
+        setTotalPaid(0);
+        setSelectedMOP([]);
+        setRemainingBalance(0);
+        setChange(0);
     };
 
     return (
@@ -385,7 +436,7 @@ export default function Home() {
                             <div>
                                 <Card className="max-w-full">
                                     <CardHeader className="justify-between">
-                                        <GetCashier />
+                                        {/* <GetCashier /> */}
                                         <GetDateTime />
                                     </CardHeader>
                                     <CardBody className="justify-between">

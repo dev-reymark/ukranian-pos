@@ -106,7 +106,7 @@ const SaleWindowTabs = ({ deliveryData, setSelectedRow, subtotal, change, inputV
                         </TableHeader>
                         <TableBody
                             items={formattedItems}
-                            emptyContent="There are no transactions."
+                            emptyContent="Nothing here"
                         >
                             [{}]
                         </TableBody>

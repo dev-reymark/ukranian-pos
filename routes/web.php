@@ -45,6 +45,7 @@ Route::middleware('auth:cashier')->group(function () {
     Route::post('/store-transactions', [TransactionController::class, 'storeTransaction']);
     Route::get('/receipt/{transactionId}', [TransactionController::class, 'getReceipt']);
     Route::get('/print-receipt/{transactionId}', [TransactionController::class, 'printReceipt']);
+    Route::post('/save-card-details', [TransactionController::class, 'saveCardDetails']);
 
     // GradeController
     Route::post('/store-grades', [GradeController::class, 'getFuelGrades']);

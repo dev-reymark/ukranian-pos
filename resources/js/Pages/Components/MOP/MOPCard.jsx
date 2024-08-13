@@ -26,10 +26,10 @@ const MOPCard = ({ mopList, onSelectMOP }) => {
                             width="100%"
                             alt={mop.MOP_Name.trim()}
                             className="w-full object-cover h-[200px]"
-                            src={
-                                mopImages[mop.MOP_Name.trim()] ||
-                                "/assets/img/MOP/mop.webp"
-                            }
+                            // src={
+                            //     mopImages[mop.MOP_Name.trim()] ||
+                            //     "/assets/img/MOP/mop.webp"
+                            // }
                         />
                     </CardBody>
                     <CardFooter className="text-small justify-between">

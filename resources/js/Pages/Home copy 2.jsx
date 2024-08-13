@@ -7,20 +7,19 @@ import {
     Tabs,
     Tab,
     Spacer,
-    Table,
-    TableHeader,
-    TableColumn,
-    TableBody,
-    TableRow,
-    TableCell,
+    Modal,
+    ModalBody,
+    ModalContent,
+    ModalHeader,
+    ModalFooter,
+    Button,
     Input,
-    table,
-    Divider,
 } from "@nextui-org/react";
 import Swal from "sweetalert2";
 import axios from "axios";
 import { FaGasPump } from "react-icons/fa";
 import toast, { Toaster } from "react-hot-toast";
+import SaleWindowTabs from "./Components/Sale/SaleWindowTabs";
 import MOPCard from "./Components/MOP/MOPCard";
 import POSKeyboard, { buttons } from "./Components/Sale/POSKeyboard";
 import { PumpCard } from "./Components/Pump/PumpCard";
@@ -30,8 +29,6 @@ import { GetCashier } from "./Components/Cashier/GetCashier";
 import { GetDateTime } from "./Components/GetDateTime";
 import { ThemeSwitcher } from "./Components/ThemeSwitcher";
 import Index from "./Config/Index";
-import { CardDetails } from "./Components/MOP/CardDetails";
-import SaleWindowTabs from "./Components/Sale/SaleWindowTabs";
 
 export default function Home() {
     const [inputValue, setInputValue] = useState("");
@@ -55,11 +52,7 @@ export default function Home() {
     const [customerAddress, setCustomerAddress] = useState("");
     const [customerTIN, setCustomerTIN] = useState("");
     const [customerBusinessStyle, setCustomerBusinessStyle] = useState("");
-
-    // Card Details States
-    const [cardNumber, setCardNumber] = useState("");
-    const [approvalCode, setApprovalCode] = useState("");
-    const [cardHolderName, setCardHolderName] = useState("");
+    const [change, setChange] = useState(0);
 
     const handleLogout = async () => {
         const result = await Swal.fire({
@@ -331,9 +324,7 @@ export default function Home() {
                 JSON.stringify(existingTransaction)
             );
 
-            if (mop.MOP_Ref === "3") {
-                setCardDetailsOpen(true); // Open Card Details Modal
-            } else if (newRemainingBalance === 0) {
+            if (newRemainingBalance === 0) {
                 await saveTransaction();
             } else {
                 setInputValue(`Amount Due: ₱${newRemainingBalance.toFixed(2)}`);
@@ -355,13 +346,13 @@ export default function Home() {
                 JSON.stringify(existingTransaction)
             );
             setInputValue(`Change: ₱${newChange}`);
-            setInputValue(`Change: ₱${newChange}`);
+            await saveTransaction();
+        }
 
-            if (mop.MOP_Ref === "3") {
-                setCardDetailsOpen(true); // Open Card Details Modal
-            } else {
-                await saveTransaction();
-            }
+        if (mop.MOP_Ref === "3") {
+            setCardDetailsOpen(true);
+        } else {
+            setCardDetailsOpen(false);
         }
     };
 
@@ -370,26 +361,12 @@ export default function Home() {
         .reduce((total, item) => total + parseFloat(item.Amount || 0), 0)
         .toFixed(2);
 
-    const [transactionSummary, setTransactionSummary] = useState({
-        change: 0,
-        mopNames: [],
-        mopPayments: [],
-    });
     // Save transaction with selected MOP
     const saveTransaction = async () => {
         const transactionData = JSON.parse(localStorage.getItem("transaction"));
         if (!transactionData) {
             toast.error("No transaction data found");
             return;
-        }
-
-        // If the selected MOP is a card, ensure card details are provided
-        if (selectedMOP && selectedMOP.MOP_Ref === "3") {
-            if (!cardNumber || !approvalCode || !cardHolderName) {
-                toast.error("Please provide complete card details.");
-                setCardDetailsOpen(true); // Re-open Card Details Modal
-                return;
-            }
         }
 
         const totalPaid = transactionData.payments.reduce(
@@ -419,16 +396,12 @@ export default function Home() {
                     Amount: item.Amount,
                     FuelGradeName: item.FuelGradeName,
                 })),
+                payment: totalPaid,
                 customer: {
                     name: customerName,
                     address: customerAddress,
                     tin: customerTIN,
                     businessStyle: customerBusinessStyle,
-                },
-                cardDetails: {
-                    name: cardHolderName,
-                    code: approvalCode,
-                    number: cardNumber,
                 },
             });
 
@@ -439,21 +412,7 @@ export default function Home() {
                 setTransactionSaved(true);
                 setRemainingBalance(0);
                 setInputValue("Transaction Complete");
-
-                // Save summary details
-                setTransactionSummary({
-                    change: parseFloat(change),
-                    mopNames: transactionData.payments.map(
-                        (payment) => payment.mopName
-                    ),
-                    mopPayments: transactionData.payments,
-                });
-
                 localStorage.removeItem("transaction");
-                // Reset card details after transaction
-                setCardNumber("");
-                setApprovalCode("");
-                setCardHolderName("");
                 handlePrintReceipt(transactionId);
             } else {
                 toast.error("Error retrieving transaction ID");
@@ -475,7 +434,7 @@ export default function Home() {
                             <div>
                                 <Card className="max-w-full">
                                     <CardHeader className="justify-between">
-                                        <GetCashier />
+                                        {/* <GetCashier /> */}
                                         <GetDateTime />
                                     </CardHeader>
                                     <CardBody className="justify-between">
@@ -496,8 +455,8 @@ export default function Home() {
                                     deliveryData={deliveryData}
                                     setSelectedRow={setSelectedRow}
                                     subtotal={subtotal}
-                                    transactionSaved={transactionSaved}
-                                    transactionSummary={transactionSummary}
+                                    inputValue={inputValue}
+                                    change={change}
                                 />
                             </div>
                             {/* POS Keyboard */}
@@ -626,21 +585,72 @@ export default function Home() {
             <CardDetails
                 isOpen={isCardDetailsOpen}
                 onOpenChange={setCardDetailsOpen}
-                cardNumber={cardNumber}
-                setCardNumber={setCardNumber}
-                approvalCode={approvalCode}
-                setApprovalCode={setApprovalCode}
-                cardHolderName={cardHolderName}
-                setCardHolderName={setCardHolderName}
-                onSave={async () => {
-                    if (!cardNumber || !approvalCode || !cardHolderName) {
-                        toast.error("Please fill in all card details.");
-                        return;
-                    }
-                    setCardDetailsOpen(false);
-                    await saveTransaction();
-                }}
             />
         </>
     );
 }
+
+
+export const CardDetails = ({ isOpen, onOpenChange }) => {
+    const [cardNumber, setCardNumber] = useState("");
+    const [approvalCode, setApprovalCode] = useState("");
+    const [cardHolderName, setCardHolderName] = useState("");
+
+    return (
+        <Modal size="lg" isOpen={isOpen} onOpenChange={onOpenChange}>
+            <ModalContent>
+                {(onClose) => (
+                    <>
+                        <ModalHeader className="flex flex-col gap-1">
+                            DEBIT/CREDIT CARD INFORMATION
+                        </ModalHeader>
+                        <ModalBody>
+                            <Input
+                                autoFocus
+                                label="Card #"
+                                placeholder="XXX-XXX-XXX-XXX-XXX"
+                                variant="bordered"
+                                value={cardNumber}
+                                onChange={(e) => setCardNumber(e.target.value)}
+                            />
+                            <Input
+                                label="Approval Code"
+                                placeholder="1234"
+                                type="password"
+                                variant="bordered"
+                                value={approvalCode}
+                                onChange={(e) =>
+                                    setApprovalCode(e.target.value)
+                                }
+                            />
+                            <Input
+                                label="Card Holder Name"
+                                placeholder="John Doe"
+                                variant="bordered"
+                                value={cardHolderName}
+                                onChange={(e) =>
+                                    setCardHolderName(e.target.value)
+                                }
+                            />
+                        </ModalBody>
+                        <ModalFooter>
+                            <Button
+                                className="w-full"
+                                color="success"
+                            >
+                                Save
+                            </Button>
+                            <Button
+                                className="w-full"
+                                color="danger"
+                                onPress={onClose}
+                            >
+                                Close
+                            </Button>
+                        </ModalFooter>
+                    </>
+                )}
+            </ModalContent>
+        </Modal>
+    );
+};

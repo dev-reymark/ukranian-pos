@@ -9,27 +9,12 @@ class FinalisationController extends Controller
 {
     public function getMOP()
     {
-        try {
-            $mopList = Finalisation::all();
+        // Fetch all MOP records from the Finalisation model
+        $mops = Finalisation::all();
 
-            if ($mopList->isEmpty()) {
-                return response()->json([
-                    "statusCode" => 0,
-                    "statusDescription" => "Failed to retrieve mop list"
-                ]);
-            }
-
-            return response()->json([
-                "statusCode" => 1,
-                "statusDescription" => "Success",
-                "data" => $mopList
-            ]);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                "statusCode" => 0,
-                "statusDescription" => "Failed to retrieve mop list: " . $e->getMessage()
-            ]);
-        }
+        // Return the records with 'MOP_Ref' included
+        return response()->json([
+            'data' => $mops
+        ]);
     }
 }

@@ -29,13 +29,12 @@ class TransactionController extends Controller
     {
         $validated = $request->validate([
             'mopNames' => 'nullable|array',
-            'mopPayments' => 'nullable|array',
             'taxTotal' => 'required|numeric',
             'change' => 'required|numeric',
             'subtotal' => 'required|numeric',
+            'payment' => 'required|numeric',
             'deliveryIds' => 'required|array',
             'customer' => 'required|array',
-            'cardDetails' => 'nullable|array',
         ]);
 
         Log::info($validated);
@@ -79,16 +78,17 @@ class TransactionController extends Controller
             ]);
             $itemNumber++;
         }
-        // Add `mopPayments`
-        foreach ($validated['mopPayments'] as $payment) {
+
+        // Add `mopName`
+        foreach ($validated['mopNames'] as $mopName) {
             TransactionItem::create([
                 'Transaction_ID' => $transaction->Transaction_ID,
-                'Item_Description' => $payment['mopName'],
+                'Item_Description' => $mopName,
                 'Item_Number' => $itemNumber,
-                'Item_Type' => 7, // Mop
+                'Item_Type' => 7, //Mop
                 'Item_Price' => 0,
                 'Item_Quantity' => 0,
-                'Item_Value' => $payment['amount'],
+                'Item_Value' => $validated['payment'],
             ]);
             $itemNumber++;
         }
@@ -109,20 +109,6 @@ class TransactionController extends Controller
             return $pump['Delivery_ID'];
         }, $validated['deliveryIds']);
 
-        // Save Card Details if provided
-        if (isset($validated['cardDetails'])) {
-            $fullCardNumber = $validated['cardDetails']['number'] ?? '';
-            $lastFourDigits = substr($fullCardNumber, -4);
-
-            TransactionDetail::create([
-                'Transaction_ID' => $transaction->Transaction_ID,
-                'CardNumber' => $lastFourDigits,  // Save only the last four digits
-                'ApprovalCode' => $validated['cardDetails']['code'] ?? '',
-                'CustomerName' => $validated['cardDetails']['name'] ?? '',
-                'Type' => 1,
-            ]);
-        }
-
         // Update Is_Sold to 1 for relevant PumpDeliveries
         PumpDelivery::whereIn('Delivery_ID', $deliveryIds)
             ->update(['Is_Sold' => 1]);
@@ -133,32 +119,59 @@ class TransactionController extends Controller
         ], 201);
     }
 
-    public function init($connector_type, $connector_descriptor, $connector_port = 9100)
+    public function saveCardDetails(Request $request)
     {
-        switch (strtolower($connector_type)) {
-            case 'cups':
-                $connector = new CupsPrintConnector($connector_descriptor);
-                break;
-            case 'windows':
-                $connector = new WindowsPrintConnector($connector_descriptor);
-                break;
-            case 'network':
-                $connector = new NetworkPrintConnector($connector_descriptor, $connector_port);
-                break;
-            default:
-                $connector = new FilePrintConnector("php://stdout");
-                break;
-        }
+        $validated = $request->validate([
+            'transactionId' => 'required|integer|exists:Transactions,Transaction_ID',
+            'cardNumber' => 'required|string',
+            'approvalCode' => 'required|string',
+            'cardHolderName' => 'required|string',
+        ]);
 
-        if ($connector) {
-            // Load simple printer profile
-            $profile = CapabilityProfile::load("default");
-            // Connect to printer
-            $this->printer = new Printer($connector, $profile);
-        } else {
-            throw new Exception('Invalid printer connector type. Accepted values are: cups, windows, network, file');
+        try {
+            // Find or create the TransactionDetail
+            $transactionDetail = TransactionDetail::updateOrCreate(
+                ['Transaction_ID' => $validated['transactionId']],
+                [
+                    'CardNumber' => $validated['cardNumber'],
+                    'ApprovalCode' => $validated['approvalCode'],
+                    'CardHolderName' => $validated['cardHolderName'],
+                ]
+            );
+
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
         }
     }
+
+
+    // public function init($connector_type, $connector_descriptor, $connector_port = 9100)
+    // {
+    //     switch (strtolower($connector_type)) {
+    //         case 'cups':
+    //             $connector = new CupsPrintConnector($connector_descriptor);
+    //             break;
+    //         case 'windows':
+    //             $connector = new WindowsPrintConnector($connector_descriptor);
+    //             break;
+    //         case 'network':
+    //             $connector = new NetworkPrintConnector($connector_descriptor, $connector_port);
+    //             break;
+    //         default:
+    //             $connector = new FilePrintConnector("php://stdout");
+    //             break;
+    //     }
+
+    //     if ($connector) {
+    //         // Load simple printer profile
+    //         $profile = CapabilityProfile::load("default");
+    //         // Connect to printer
+    //         $this->printer = new Printer($connector, $profile);
+    //     } else {
+    //         throw new Exception('Invalid printer connector type. Accepted values are: cups, windows, network, file');
+    //     }
+    // }
 
     public function getReceipt($transactionId)
     {
@@ -179,10 +192,10 @@ class TransactionController extends Controller
         $receipt = Receipt::first();
 
         // Initialize the receipt printer
-        $this->init(
-            config('receiptprinter.connector_type'),
-            config('receiptprinter.connector_descriptor')
-        );
+        // $this->init(
+        //     config('receiptprinter.connector_type'),
+        //     config('receiptprinter.connector_descriptor')
+        // );
 
         // Define the header lines
         $headerLines = [
@@ -284,12 +297,10 @@ class TransactionController extends Controller
         $this->printer->text(sprintf("%-{$fieldWidth}s %{$fieldWidth}s\n", 'Sale Total', sprintf("P%6.2f", $transaction->Sale_Total)));
         $receiptContent .= sprintf("%-{$fieldWidth}s %{$fieldWidth}s\n", 'Sale Total', sprintf("P%6.2f", $transaction->Sale_Total));
 
-        // Print MOP Payments
-        foreach ($transaction->items as $item) {
-            if ($item->Item_Type == 7) {
-                $this->printer->text(sprintf("%-{$fieldWidth}s %{$fieldWidth}s\n", $item->Item_Description, sprintf("P%6.2f", $item->Item_Value)));
-                $receiptContent .= sprintf("%-{$fieldWidth}s %{$fieldWidth}s\n", $item->Item_Description, sprintf("P%6.2f", $item->Item_Value));
-            }
+        // Print CASH if it exists
+        if ($cashTotal > 0) {
+            $this->printer->text(sprintf("%-{$fieldWidth}s %{$fieldWidth}s\n", 'CASH', sprintf("P%6.2f", $cashTotal)));
+            $receiptContent .= sprintf("%-{$fieldWidth}s %{$fieldWidth}s\n", 'CASH', sprintf("P%6.2f", $cashTotal));
         }
 
         // Print CHANGE if it exists
@@ -332,38 +343,10 @@ class TransactionController extends Controller
         $this->printer->text(sprintf("%-{$fieldWidth}s %{$fieldWidth}s\n", 'Zero Rated Sale', sprintf("P%6.2f", 0)));
         $receiptContent .= sprintf("%-{$fieldWidth}s %{$fieldWidth}s\n", 'Zero Rated Sale', sprintf("P%6.2f", 0));
 
-        // Check if card details exist
-        $transactionDetail = TransactionDetail::where('Transaction_ID', $transactionId)->first();
-        if (
-            $transactionDetail && isset($transactionDetail->ApprovalCode) && trim($transactionDetail->ApprovalCode) !== '' &&
-            isset($transactionDetail->CardNumber) && trim($transactionDetail->CardNumber) !== ''
-        ) {
-            // Retrieve the card number from the database
-            $cardNumber = $transactionDetail->CardNumber;
-
-            // Get the card number from the database
-            $maskedCardNumber = 'XXXX-XXXX-XXXX-' . $cardNumber;
-
-            $this->printer->feed(1);
-            $receiptContent .= "\n";
-
-            // Print the formatted card number and related details
-            $this->printer->text(sprintf("%-{$fieldWidth}s %{$fieldWidth}s\n", 'Card#:', $maskedCardNumber));
-            $receiptContent .= sprintf("%-{$fieldWidth}s %{$fieldWidth}s\n", 'Card#:', $maskedCardNumber);
-
-            $this->printer->text(sprintf("%-{$fieldWidth}s %{$fieldWidth}s\n", 'AppCode:', $transactionDetail->ApprovalCode));
-            $receiptContent .= sprintf("%-{$fieldWidth}s %{$fieldWidth}s\n", 'AppCode:', $transactionDetail->ApprovalCode);
-
-            // Print a line for the signature
-            $this->printer->text(sprintf("%-{$fieldWidth}s %{$fieldWidth}s\n", 'Sign:', '________________________'));
-            $receiptContent .= sprintf("%-{$fieldWidth}s %{$fieldWidth}s\n", 'Sign:', '________________________');
-        } else {
-            Log::info('Card details not provided or are empty, skipping printing of card information.');
-        }
-
         // Add a feed for separation
         $this->printer->feed(1);
         $receiptContent .= "\n";
+
 
         // Print footer
         $this->printer->setJustification(Printer::JUSTIFY_CENTER);
@@ -384,17 +367,19 @@ class TransactionController extends Controller
             }
         }
 
-        // // Save receipt content to a text file
-        // $filePath = storage_path('receipts/receipt_' . $transactionId . '.txt');
-        // file_put_contents($filePath, $receiptContent);
+        // Write the receipt content to a text file
+        file_put_contents('receipt_test.txt', $receiptContent);
 
-        // Cut the receipt
-        $this->printer->cut();
+        // Open the text file in Notepad (for Windows)
+        exec('notepad receipt_test.txt');
 
-        $this->openCashDrawer();
+        // // Cut the receipt
+        // $this->printer->cut();
 
-        // Close the printer connection
-        $this->printer->close();
+        // $this->openCashDrawer();
+
+        // // Close the printer connection
+        // $this->printer->close();
 
         // Save the receipt content to the ElectricJournal
         $this->saveToElectricJournal($transactionId, $receiptContent);

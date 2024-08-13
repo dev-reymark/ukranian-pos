@@ -1,1 +1,0 @@
-import{j as o}from"./app-B13YKW_w.js";import{i as t}from"./chunk-NK4BRF7C-CrZFUoF5.js";import"./chunk-N2KXC5ZE-DbcteAkG.js";import"./chunk-RQNQ5XFG-BEO_Vy4a.js";import"./index-C9vh_wYu.js";import"./index-kbMzUDjs.js";function e(){return o.jsx(t,{src:"/assets/img/logo.png",alt:"Logo",width:50,height:50})}export{e as default};

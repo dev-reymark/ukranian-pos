@@ -9,6 +9,8 @@ use Mike42\Escpos\PrintConnectors\WindowsPrintConnector;
 use Mike42\Escpos\PrintConnectors\NetworkPrintConnector;
 use Mike42\Escpos\PrintConnectors\FilePrintConnector;
 use Exception;
+use Illuminate\Http\Request;
+
 
 class PrinterController extends Controller
 {
@@ -56,7 +58,6 @@ class PrinterController extends Controller
 
             // If printer initialization was successful, it means the printer is connected
             $response = ['status' => 'connected'];
-
         } catch (Exception $e) {
             // Distinguish between different types of errors
             if (strpos($e->getMessage(), 'CupsPrintConnector') !== false) {
@@ -79,5 +80,30 @@ class PrinterController extends Controller
         }
 
         return response()->json($response, 200);
+    }
+
+    public function printData(Request $request)
+    {
+        try {
+            // Initialize the printer
+            $this->init(
+                config('receiptprinter.connector_type'),
+                config('receiptprinter.connector_descriptor')
+            );
+
+            // Print only the Data field
+            $this->printer->text($request->input('data'));
+            $this->printer->cut();
+        } catch (Exception $e) {
+            // Return error response if printing fails
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+        } finally {
+            // Ensure the printer is closed in all cases
+            if (isset($this->printer)) {
+                $this->printer->close();
+            }
+        }
+
+        return response()->json(['status' => 'success', 'message' => 'Print job completed successfully'], 200);
     }
 }

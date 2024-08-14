@@ -16,17 +16,19 @@ import {
     TableBody,
     TableRow,
     TableCell,
-    DatePicker,
-    TimeInput,
     Pagination,
 } from "@nextui-org/react";
 import axios from "axios";
 import { AiOutlineClose } from "react-icons/ai";
+import { toast } from "react-hot-toast";
 
 function ElectricJournal({ isOpen, onOpenChange }) {
-    const [selectedDate, setSelectedDate] = useState(null);
+    const [selectedDate, setSelectedDate] = useState(
+        new Date().toISOString().split("T")[0]
+    ); 
     const [selectedTime, setSelectedTime] = useState(null);
     const [journalList, setJournalList] = useState([]);
+    const [originalJournalList, setOriginalJournalList] = useState([]);
     const [selectedItem, setSelectedItem] = useState(null);
     const [error, setError] = useState(null);
     const [page, setPage] = useState(1);
@@ -37,7 +39,6 @@ function ElectricJournal({ isOpen, onOpenChange }) {
     const items = React.useMemo(() => {
         const start = (page - 1) * rowsPerPage;
         const end = start + rowsPerPage;
-
         return journalList.slice(start, end);
     }, [page, journalList]);
 
@@ -45,14 +46,13 @@ function ElectricJournal({ isOpen, onOpenChange }) {
         const getJournal = async () => {
             try {
                 const response = await axios.get("/get-journals");
-                console.log(response.data);
                 if (Array.isArray(response.data.data)) {
-                    setJournalList(response.data.data);
+                    setOriginalJournalList(response.data.data);
+                    applyFilters(new Date(), null); // Filter by today's date by default
                 } else {
                     setError("Unexpected data format.");
                 }
             } catch (error) {
-                console.error("Error fetching journals:", error);
                 setError("Failed to fetch journals.");
             }
         };
@@ -64,43 +64,64 @@ function ElectricJournal({ isOpen, onOpenChange }) {
         setSelectedItem(item);
     };
 
-    const handleDateChange = (date) => {
+    const handleDateChange = (event) => {
+        const date = event.target.value;
         setSelectedDate(date);
-        applyFilters(date, selectedTime);
+        applyFilters(new Date(date), selectedTime);
     };
 
-    const handleTimeChange = (time) => {
+    const handleTimeChange = (event) => {
+        const time = event.target.value;
         setSelectedTime(time);
-        applyFilters(selectedDate, time);
+        applyFilters(new Date(selectedDate), time);
     };
 
     const applyFilters = (date, time) => {
-        if (!date && !time) {
-            setJournalList(originalJournalList);
-            return;
-        }
-
         let filteredList = originalJournalList;
 
         if (date) {
-            filteredList = filteredList.filter(
-                (item) =>
-                    new Date(item.Transaction_Date).toDateString() ===
-                    date.toDateString()
-            );
+            filteredList = filteredList.filter((item) => {
+                const itemDate = new Date(item.Transaction_Date);
+                return itemDate.toDateString() === date.toDateString();
+            });
         }
 
         if (time) {
-            filteredList = filteredList.filter(
-                (item) =>
-                    new Date(item.Transaction_Date).getHours() ===
-                        time.getHours() &&
-                    new Date(item.Transaction_Date).getMinutes() ===
-                        time.getMinutes()
-            );
+            const [hours, minutes] = time.split(":").map(Number);
+            filteredList = filteredList.filter((item) => {
+                const itemDate = new Date(item.Transaction_Date);
+                return (
+                    itemDate.getHours() === hours &&
+                    itemDate.getMinutes() === minutes
+                );
+            });
         }
 
         setJournalList(filteredList);
+    };
+
+    const handlePrint = async () => {
+        if (selectedItem) {
+            try {
+                const response = await axios.post("/print-data", {
+                    data: selectedItem.Data,
+                });
+
+                if (response.data.status === "success") {
+                    toast.success("Print job sent successfully");
+                } else {
+                    toast.error(
+                        "Failed to send print job: " + response.data.message
+                    );
+                }
+            } catch (error) {
+                toast.error(
+                    "An error occurred while sending the print request."
+                );
+            }
+        } else {
+            toast.error("No item selected to print");
+        }
     };
 
     return (
@@ -171,7 +192,6 @@ function ElectricJournal({ isOpen, onOpenChange }) {
                                                 className="cursor-pointer"
                                             >
                                                 <TableCell>
-                                                    {/* {item.Transaction_Date} */}
                                                     {new Date(
                                                         new Date(
                                                             item.Transaction_Date
@@ -221,9 +241,7 @@ function ElectricJournal({ isOpen, onOpenChange }) {
                                         <Button
                                             className="w-full"
                                             color="primary"
-                                            onClick={() =>
-                                                console.log("Print function")
-                                            }
+                                            onClick={handlePrint}
                                         >
                                             Print
                                         </Button>
@@ -231,11 +249,13 @@ function ElectricJournal({ isOpen, onOpenChange }) {
                                             className="w-full"
                                             color="secondary"
                                             onClick={() => {
-                                                setSelectedDate(null);
-                                                setSelectedTime(null);
-                                                setJournalList(
-                                                    originalJournalList
+                                                setSelectedDate(
+                                                    new Date()
+                                                        .toISOString()
+                                                        .split("T")[0]
                                                 );
+                                                setSelectedTime(null);
+                                                applyFilters(new Date(), null);
                                             }}
                                         >
                                             Reset Search
@@ -243,20 +263,19 @@ function ElectricJournal({ isOpen, onOpenChange }) {
                                     </CardHeader>
                                     <Divider />
                                     <CardBody className="flex gap-3">
-                                        <DatePicker
-                                            label="Select date"
+                                        <input
+                                            type="date"
                                             className="w-full"
                                             value={selectedDate}
                                             onChange={handleDateChange}
                                         />
-                                        <TimeInput
-                                            label="Select time"
+                                        <input
+                                            type="time"
                                             className="w-full"
-                                            value={selectedTime}
+                                            value={selectedTime || ""}
                                             onChange={handleTimeChange}
                                         />
                                     </CardBody>
-
                                     <Divider />
                                 </Card>
                             </div>
@@ -277,7 +296,6 @@ function ElectricJournal({ isOpen, onOpenChange }) {
                                         <AiOutlineClose />
                                     </Button>
                                 </CardHeader>
-
                                 <Divider />
                                 <CardBody>
                                     {selectedItem ? (
@@ -302,7 +320,6 @@ function ElectricJournal({ isOpen, onOpenChange }) {
                                         </p>
                                     )}
                                 </CardBody>
-
                                 <Divider />
                             </Card>
                         </ModalBody>

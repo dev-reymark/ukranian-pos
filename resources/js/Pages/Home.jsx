@@ -34,6 +34,7 @@ import { CardDetails } from "./Components/MOP/CardDetails";
 import SaleWindowTabs from "./Components/Sale/SaleWindowTabs";
 
 export default function Home() {
+    const [data, setData] = useState([]);
     const [inputValue, setInputValue] = useState("");
     const [pumpStatus, setPumpStatus] = useState([]);
     const [mopList, setMopList] = useState([]);

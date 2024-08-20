@@ -126,12 +126,12 @@ export const PumpCard = ({ pump, handleAppendDeliveryData }) => {
 
     return (
         <>
-            <Card key={pump.Id} className="p-2">
+            <Card key={pump.Id}>
                 <CardHeader className="flex items-center justify-between">
                     <PumpDelivery
                         pumpId={pump.Id}
                         onAppend={handleAppendDeliveryData}
-                        disabled={pump.Type === "PumpOfflineStatus"}
+                        // disabled={pump.Type === "PumpOfflineStatus"}
                     />
                     <Chip
                         size="lg"

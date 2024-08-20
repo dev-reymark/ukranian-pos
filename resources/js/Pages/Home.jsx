@@ -20,7 +20,8 @@ import {
 import Swal from "sweetalert2";
 import axios from "axios";
 import { FaGasPump } from "react-icons/fa";
-import toast, { Toaster } from "react-hot-toast";
+import { ToastContainer, Zoom, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import MOPCard from "./Components/MOP/MOPCard";
 import POSKeyboard, { buttons } from "./Components/Sale/POSKeyboard";
 import { PumpCard } from "./Components/Pump/PumpCard";
@@ -32,6 +33,7 @@ import { ThemeSwitcher } from "./Components/ThemeSwitcher";
 import Index from "./Config/Index";
 import { CardDetails } from "./Components/MOP/CardDetails";
 import SaleWindowTabs from "./Components/Sale/SaleWindowTabs";
+import ReportsIndex from "./Components/Reports/ReportsIndex";
 
 export default function Home() {
     const [data, setData] = useState([]);
@@ -342,7 +344,7 @@ export default function Home() {
         } else {
             const newChange = Math.abs(newRemainingBalance).toFixed(2);
             toast.success(
-                `Payment exceeds the remaining balance. Change: ₱${newChange}`
+                `Change: ₱${newChange}`
             );
 
             existingTransaction.payments.push({
@@ -469,39 +471,62 @@ export default function Home() {
         <>
             <Head title="Home" />
             <audio ref={audioRef} src="assets/audio/nozzle-status-sound.wav" />
-            <div className="min-h-screen dark:bg-gray-900 p-3">
-                <main className="w-full h-full mx-auto">
-                    <div className="grid gap-6 lg:grid-cols-2 lg:gap-4">
-                        <Card className="dark:bg-gray-800 flex flex-col h-full p-3">
-                            <div>
-                                <Card className="max-w-full">
-                                    <CardHeader className="justify-between">
-                                        <GetCashier />
-                                        <GetDateTime />
-                                    </CardHeader>
-                                    <CardBody className="justify-between">
-                                        <div className="flex gap-4">
-                                            <div className="w-[70%] bg-slate-200 rounded-lg shadow-sm relative">
-                                                <Toaster position="top-right" />
-                                            </div>
-                                            <PrinterStatus />
-                                            <ThemeSwitcher />
+            <main>
+                <Card className="grid lg:grid-cols-2 gap-2 p-2 h-[100vh]">
+                    <Card className="dark:bg-gray-900 p-2 flex flex-col h-full">
+                        {/* Sale Header */}
+                        <div className="flex-none h-[20%]">
+                            <Card className="max-w-full h-full">
+                                <CardHeader className="justify-between">
+                                    <GetCashier />
+                                    <GetDateTime />
+                                </CardHeader>
+                                <CardBody className="justify-between">
+                                    <div className="flex gap-4">
+                                        <div className="w-[70%] h-[70px] bg-slate-200 rounded-lg shadow-sm relative">
+                                            <ToastContainer
+                                              position="top-right"
+                                              autoClose={2000}
+                                              hideProgressBar={false}
+                                              newestOnTop={false}
+                                              closeOnClick
+                                              rtl={false}
+                                              pauseOnFocusLoss
+                                              draggable
+                                              pauseOnHover={true}
+                                              theme="light"
+                                              transition={Zoom}
+                                            
+                                                style={{
+                                                    position: "absolute",
+                                                    top: 0,
+                                                    right: 0,
+                                                    bottom: 0,
+                                                    left: 0,
+                                                    width: "100%",
+                                                    height: "50%",
+                                                }}
+                                            />
                                         </div>
-                                    </CardBody>
-                                </Card>
-                            </div>
-                            <Spacer y={3} />
-                            {/* Sale Window */}
-                            <div className="flex-grow">
-                                <SaleWindowTabs
-                                    deliveryData={deliveryData}
-                                    setSelectedRow={setSelectedRow}
-                                    subtotal={subtotal}
-                                    transactionSaved={transactionSaved}
-                                    transactionSummary={transactionSummary}
-                                />
-                            </div>
-                            {/* POS Keyboard */}
+                                        <PrinterStatus />
+                                        <ThemeSwitcher />
+                                    </div>
+                                </CardBody>
+                            </Card>
+                        </div>
+                        <Spacer y={3} />
+                        {/* Sale Window */}
+                        <div className="flex-grow">
+                            <SaleWindowTabs
+                                deliveryData={deliveryData}
+                                setSelectedRow={setSelectedRow}
+                                subtotal={subtotal}
+                                transactionSaved={transactionSaved}
+                                transactionSummary={transactionSummary}
+                            />
+                        </div>
+                        {/* POS Keyboard */}
+                        <div className="flex-none">
                             <Card className="w-full gap-2 p-2">
                                 <div className="flex gap-2">
                                     <Input
@@ -547,52 +572,56 @@ export default function Home() {
                                     />
                                 </div>
                             </Card>
-                        </Card>
-                        {/* Pumps */}
-                        <Card className="dark:bg-gray-800  flex items-start gap-4 rounded-lg bg-white p-6 shadow-[0px_14px_34px_0px_rgba(0,0,0,0.08)] ring-1 ring-white/[0.05] lg:pb-10">
-                            <div className="flex w-full flex-col">
-                                <Tabs aria-label="Options" fullWidth>
-                                    <Tab key="pumps" title="PUMPS">
-                                        {pumpStatus.length === 0 ? (
-                                            <div className="flex flex-col items-center mt-6">
-                                                <FaGasPump className="w-12 h-12 text-danger" />
-                                                <span className="mt-4">
-                                                    No pumps found
-                                                </span>
+                        </div>
+                    </Card>
+                    {/* Pumps */}
+                    <Card className="dark:bg-gray-900 p-2">
+                        <div className="flex w-full flex-col">
+                            <Tabs aria-label="Pumps" fullWidth>
+                                <Tab key="pumps" title="PUMPS">
+                                    {pumpStatus.length === 0 ? (
+                                        <div className="flex flex-col items-center mt-6">
+                                            <FaGasPump className="w-12 h-12 text-danger" />
+                                            <span className="mt-4">
+                                                No pumps found
+                                            </span>
+                                        </div>
+                                    ) : (
+                                        <div className="overflow-y-auto scrollbar-hide max-h-screen p-1">
+                                            <div className="grid grid-cols-4 gap-2">
+                                                {pumpStatus.map((pump) => (
+                                                    <PumpCard
+                                                        key={pump.Id}
+                                                        pump={pump}
+                                                        handleAppendDeliveryData={
+                                                            handleAppendDeliveryData
+                                                        }
+                                                    />
+                                                ))}
                                             </div>
-                                        ) : (
-                                            <div className="overflow-y-auto max-h-[calc(100vh-200px)] p-2">
-                                                <div className="grid grid-cols-4 gap-2">
-                                                    {pumpStatus.map((pump) => (
-                                                        <PumpCard
-                                                            key={pump.Id}
-                                                            pump={pump}
-                                                            handleAppendDeliveryData={
-                                                                handleAppendDeliveryData
-                                                            }
-                                                        />
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )}
-                                    </Tab>
+                                        </div>
+                                    )}
+                                </Tab>
 
-                                    <Tab key="mop" title="MOP">
-                                        <MOPCard
-                                            mopList={mopList}
-                                            onSelectMOP={handleSelectMOP}
-                                        />
-                                    </Tab>
+                                <Tab key="mop" title="MOP">
+                                    <MOPCard
+                                        mopList={mopList}
+                                        onSelectMOP={handleSelectMOP}
+                                    />
+                                </Tab>
 
-                                    <Tab key="config" title="Config">
-                                        <Index />
-                                    </Tab>
-                                </Tabs>
-                            </div>
-                        </Card>
-                    </div>
-                </main>
-            </div>
+                                <Tab key="reports" title="REPORTS">
+                                    <ReportsIndex />
+                                </Tab>
+
+                                <Tab key="config" title="CONFIG">
+                                    <Index />
+                                </Tab>
+                            </Tabs>
+                        </div>
+                    </Card>
+                </Card>
+            </main>
             <CustomerDetails
                 isOpen={isCustomerModalOpen}
                 onClose={handleCloseCustomerDetails}

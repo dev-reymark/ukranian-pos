@@ -14,17 +14,27 @@ const MOPCard = ({ mopList, onSelectMOP }) => {
         <div className="grid grid-cols-4 gap-2">
             {mopList.map((mop) => (
                 <Card
-                    key={mop.MOP_ID}
                     shadow="sm"
+                    key={mop.MOP_ID}
                     isPressable
                     onPress={() => onSelectMOP(mop)}
-                    className="p-2 h-[200px]"
                 >
-                    <div className="flex justify-center items-center h-full">
-                        <h1 className="text-xl font-extrabold">
-                            {mop.MOP_Name.trim()}
-                        </h1>
-                    </div>
+                    <CardBody className="overflow-visible p-0">
+                        <Image
+                            shadow="sm"
+                            radius="lg"
+                            width="100%"
+                            alt={mop.MOP_Name.trim()}
+                            className="w-full object-cover h-[200px]"
+                            // src={
+                            //     mopImages[mop.MOP_Name.trim()] ||
+                            //     "/assets/img/MOP/mop.webp"
+                            // }
+                        />
+                    </CardBody>
+                    <CardFooter className="text-small justify-between">
+                        <b>{mop.MOP_Name.trim()}</b>
+                    </CardFooter>
                 </Card>
             ))}
         </div>

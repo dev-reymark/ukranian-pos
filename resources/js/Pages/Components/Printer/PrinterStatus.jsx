@@ -45,7 +45,7 @@ export const PrinterStatus = () => {
             isReadOnly
             label="Printer Status"
             color={statusStyles(printerStatus)}
-            size="sm"
+            size="lg"
             value={printerStatus + " " + printerError}
         />
     );

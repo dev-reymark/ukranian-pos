@@ -4,37 +4,69 @@ import { Button } from "@nextui-org/react";
 export const buttons = [
     {
         label: "CLEAR",
-        color: "primary",
+        color: "warning",
         onClick: "handleClear",
     },
-    { label: "VOID", color: "danger", onClick: "handleVoid" },
-    { label: "VOID ALL", color: "primary", onClick: "handleVoidAll" },
     {
-        label: "USER",
-        color: "primary",
+        label: "VOID",
+        color: "danger",
+        onClick: "handleVoid",
+    },
+    {
+        label: "VOID ALL",
+        color: "danger",
+        onClick: "handleVoidAll",
+    },
+    {
+        label: "LOGOUT",
+        color: "danger",
         onClick: "handleLogout",
     },
-    { label: "OPEN DRAWER", color: "primary", className: "md:text-sm" },
-    { label: "SUB-TOTAL", color: "primary", onClick: "handleSubTotal" },
+    {
+        label: "OPEN DRAWER",
+        color: "primary",
+    },
+    {
+        label: "SUB-TOTAL",
+        color: "primary",
+        onClick: "handleSubTotal",
+    },
     {
         label: "PRINT RECEIPT",
         color: "primary",
-        className: "md:text-sm",
         onClick: "handlePrintReceipt",
     },
-    { label: "ZERO RATED", color: "primary" },
-    { label: "PG DISC", color: "primary" },
+    {
+        label: "ZERO RATED",
+        color: "default",
+    },
+    {
+        label: "PG DISC",
+        color: "secondary",
+    },
     {
         label: "CUSTOMER INFO",
-        color: "primary",
-        className: "md:text-sm",
+        color: "success",
         onClick: "handleOpenCustomerDetails",
     },
-    { label: "ALL STOP", color: "primary", onClick: "handleStopAllPumps" },
-    { label: "ALL AUTH", color: "primary", onClick: "handleAuthorizeAllPumps" },
+    {
+        label: "ALL STOP",
+        color: "danger",
+        onClick: "handleStopAllPumps",
+    },
+    {
+        label: "ALL AUTH",
+        color: "primary",
+        onClick: "handleAuthorizeAllPumps",
+    },
 ];
 
-const POSKeyboard = ({ handleButtonClick, buttons, buttonClickHandlers, setInputValue }) => {
+const POSKeyboard = ({
+    handleButtonClick,
+    buttons,
+    buttonClickHandlers,
+    setInputValue,
+}) => {
     return (
         <>
             <div className="grid grid-cols-3 gap-1">
@@ -43,7 +75,10 @@ const POSKeyboard = ({ handleButtonClick, buttons, buttonClickHandlers, setInput
                         key={num}
                         color="primary"
                         size="lg"
+                        variant="shadow"
+                        // radius="full"
                         onClick={() => handleButtonClick(num.toString())}
+                        className="text-2xl font-bold"
                     >
                         {num}
                     </Button>
@@ -55,6 +90,8 @@ const POSKeyboard = ({ handleButtonClick, buttons, buttonClickHandlers, setInput
                         key={index}
                         size="lg"
                         color={color}
+                        variant="shadow"
+                        className="font-bold"
                         onClick={() => {
                             if (
                                 typeof onClick === "string" &&
@@ -66,7 +103,6 @@ const POSKeyboard = ({ handleButtonClick, buttons, buttonClickHandlers, setInput
                                 onClick(setInputValue);
                             }
                         }}
-                        className={className}
                     >
                         {label}
                     </Button>
@@ -75,6 +111,5 @@ const POSKeyboard = ({ handleButtonClick, buttons, buttonClickHandlers, setInput
         </>
     );
 };
-
 
 export default POSKeyboard;

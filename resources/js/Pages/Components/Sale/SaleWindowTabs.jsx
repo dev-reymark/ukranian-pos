@@ -43,12 +43,13 @@ const SaleWindowTabs = ({
         <>
             <Tabs aria-label="Sale Window">
                 <Tab key="window1" title="Window 1">
-                    <Card className="p-2">
+                    <Card className="p-2 h-[340px]">
                         <Table
                             removeWrapper
                             isHeaderSticky
                             aria-label="Transactions"
                             selectionMode="single"
+                            className="max-h-[330px] overflow-y-auto scrollbar-hide"
                         >
                             <TableHeader>
                                 <TableColumn>ITEM(S)</TableColumn>
@@ -58,7 +59,11 @@ const SaleWindowTabs = ({
                             </TableHeader>
                             <TableBody
                                 items={formattedItems}
-                                emptyContent="There are no transactions."
+                                emptyContent={
+                                    <h1 className="text-xl font-extrabold mt-20">
+                                        No transactions yet.
+                                    </h1>
+                                }
                             >
                                 {formattedItems.map((item) => (
                                     <TableRow

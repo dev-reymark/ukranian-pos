@@ -52,7 +52,7 @@ class PumpController extends Controller
     }
     public function getPumpStatus(Request $request)
     {
-        $pumpCount = 20;
+        $pumpCount = 30;
         $packets = [];
 
         // Create packets for all pumps

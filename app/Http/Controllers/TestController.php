@@ -120,10 +120,18 @@ class TestController extends Controller
         // Cut the receipt
         $this->printer->cut();
 
+        // Open the cash drawer
+        $this->openCashDrawer();
+
         // Close the printer connection
         $this->printer->close();
 
         return response()->json(['message' => 'Receipt printed successfully'], 200);
+    }
+
+    private function openCashDrawer()
+    {
+        $this->printer->pulse(0);
     }
 
     private function printJustifiedText($label, $value, $width)

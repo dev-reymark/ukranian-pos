@@ -184,11 +184,19 @@ class TransactionController extends Controller
             config('receiptprinter.connector_descriptor')
         );
 
-        // Define the header lines
+        // Define header lines
         $headerLines = [
             $receipt->Receipt_Header_L1,
             $receipt->Receipt_Header_L2,
             $receipt->Receipt_Header_L3,
+        ];
+
+        // Define footer lines
+        $footerLines = [
+            $receipt->Receipt_Footer_L1,
+            $receipt->Receipt_Footer_L2,
+            $receipt->Receipt_Footer_L3,
+            $receipt->Receipt_Footer_L4,
         ];
 
         // Collect receipt content in a variable
@@ -365,22 +373,18 @@ class TransactionController extends Controller
         $this->printer->feed(1);
         $receiptContent .= "\n";
 
-        // Print footer
+        // Print footer lines
         $this->printer->setJustification(Printer::JUSTIFY_CENTER);
-        $footerLines = [
-            $receipt->Receipt_Footer_L1,
-            $receipt->Receipt_Footer_L2,
-            $receipt->Receipt_Footer_L3,
-            $receipt->Receipt_Footer_L4,
-        ];
         foreach ($footerLines as $index => $line) {
             $lines = explode('\\n', $line);
             foreach ($lines as $textLine) {
                 $this->printer->text(trim($textLine) . "\n");
+                $receiptContent .= trim($textLine) . "\n";
             }
 
             if ($index === 0) {
                 $this->printer->feed(1);
+                $receiptContent .= "\n";
             }
         }
 
@@ -417,6 +421,8 @@ class TransactionController extends Controller
         $journal->pos_id = 1;
         $journal->Transaction_Date = Carbon::now();
         $journal->si_number = sprintf('%09d', $transactionId);
+        // Prepend ***REPRINT*** to the receipt content
+        $receiptContent = "*** REPRINT *** \n\n" . $receiptContent;
         $journal->Data = $receiptContent;
         $journal->print_count = 1;
 

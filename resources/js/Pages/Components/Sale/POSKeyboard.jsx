@@ -25,6 +25,7 @@ export const buttons = [
     {
         label: "OPEN DRAWER",
         color: "primary",
+        onClick: "handleOpenDrawer",
     },
     {
         label: "SUB-TOTAL",

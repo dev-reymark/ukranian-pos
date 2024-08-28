@@ -125,7 +125,7 @@ export default function PumpDelivery({ pumpId, onAppend, disabled }) {
                 <Dialog
                     open={openDialog}
                     onClose={() => setOpenDialog(false)}
-                    className="relative z-10"
+                    className="relative z-[60]"
                 >
                     <DialogBackdrop transition />
                     <div className="fixed inset-0 overflow-hidden">

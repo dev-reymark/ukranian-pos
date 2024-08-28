@@ -82,6 +82,29 @@ class PrinterController extends Controller
         return response()->json($response, 200);
     }
 
+    public function openCashDrawer(Request $request)
+    {
+        try {
+            // Initialize the printer
+            $this->init(
+                config('receiptprinter.connector_type'),
+                config('receiptprinter.connector_descriptor')
+            );
+
+            // Pulse to open the cash drawer
+            $this->printer->pulse(0); // Usually, 0 is the drawer number, adjust if necessary.
+
+            return response()->json(['status' => 'success', 'message' => 'Cash drawer opened successfully'], 200);
+        } catch (Exception $e) {
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+        } finally {
+            if (isset($this->printer)) {
+                $this->printer->close();
+            }
+        }
+    }
+
+
     public function printData(Request $request)
     {
         try {
@@ -90,6 +113,8 @@ class PrinterController extends Controller
                 config('receiptprinter.connector_type'),
                 config('receiptprinter.connector_descriptor')
             );
+
+            $this->printer->setJustification(Printer::JUSTIFY_CENTER);
 
             // Print only the Data field
             $this->printer->text($request->input('data'));

@@ -297,10 +297,11 @@ function ElectricJournal({ isOpen, onOpenChange }) {
                                     </Button>
                                 </CardHeader>
                                 <Divider />
-                                <CardBody>
+                                <CardBody className="flex flex-col items-center">
                                     {selectedItem ? (
                                         <pre
                                             style={{
+                                                textAlign: "center",
                                                 whiteSpace: "pre-wrap",
                                                 wordWrap: "break-word",
                                                 fontFamily: "monospace",

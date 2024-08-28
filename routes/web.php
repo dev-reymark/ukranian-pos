@@ -58,6 +58,8 @@ Route::middleware('auth:cashier')->group(function () {
     // Printer Controller
     Route::get('/printer-status', [PrinterController::class, 'checkPrinterStatus']);
     Route::post('/print-data', [PrinterController::class, 'printData']);
+    Route::get('/open-cash-drawer', [PrinterController::class, 'openCashDrawer']);
+
     // Electronic Journal Controller
     Route::get('/get-journals', [ElectricJournalController::class, 'getJournal']);
 });

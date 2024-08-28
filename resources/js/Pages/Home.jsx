@@ -285,6 +285,20 @@ export default function Home() {
         }
     };
 
+    const handleOpenDrawer = async () => {
+        try {
+            const response = await axios.get("/open-cash-drawer");
+            toast.success("Drawer opened successfully");
+            console.log("Drawer opened:", response.data);
+        } catch (error) {
+            toast.error("Error opening drawer");
+            console.error(
+                "Error opening drawer:",
+                error.response ? error.response.data : error.message
+            );
+        }
+    };
+
     const buttonClickHandlers = {
         handleLogout,
         handleVoid,
@@ -295,6 +309,7 @@ export default function Home() {
         handlePrintReceipt,
         handleStopAllPumps,
         handleOpenCustomerDetails,
+        handleOpenDrawer,
     };
 
     // Handle MOP selection
@@ -343,9 +358,7 @@ export default function Home() {
             }
         } else {
             const newChange = Math.abs(newRemainingBalance).toFixed(2);
-            toast.success(
-                `Change: ₱${newChange}`
-            );
+            toast.success(`Change: ₱${newChange}`);
 
             existingTransaction.payments.push({
                 mopName: mop.MOP_Name,
@@ -485,18 +498,17 @@ export default function Home() {
                                     <div className="flex gap-4">
                                         <div className="w-[70%] h-[70px] bg-slate-200 rounded-lg shadow-sm relative">
                                             <ToastContainer
-                                              position="top-right"
-                                              autoClose={2000}
-                                              hideProgressBar={false}
-                                              newestOnTop={false}
-                                              closeOnClick
-                                              rtl={false}
-                                              pauseOnFocusLoss
-                                              draggable
-                                              pauseOnHover={true}
-                                              theme="light"
-                                              transition={Zoom}
-                                            
+                                                position="top-right"
+                                                autoClose={2000}
+                                                hideProgressBar={false}
+                                                newestOnTop={false}
+                                                closeOnClick
+                                                rtl={false}
+                                                pauseOnFocusLoss
+                                                draggable
+                                                pauseOnHover={true}
+                                                theme="light"
+                                                transition={Zoom}
                                                 style={{
                                                     position: "absolute",
                                                     top: 0,

@@ -5,6 +5,7 @@ import { createRoot } from "react-dom/client";
 import { createInertiaApp } from "@inertiajs/react";
 import { resolvePageComponent } from "laravel-vite-plugin/inertia-helpers";
 import { NextUIProvider } from "@nextui-org/react";
+import ScreenSizeWrapper from "./Pages/Components/ScreenSizeWrapper";
 
 const appName = import.meta.env.VITE_APP_NAME || "VenusPOS";
 
@@ -20,7 +21,9 @@ createInertiaApp({
 
         root.render(
             <NextUIProvider>
-                <App {...props} />
+                {/* <ScreenSizeWrapper> */}
+                    <App {...props} />
+                {/* </ScreenSizeWrapper> */}
             </NextUIProvider>
         );
     },

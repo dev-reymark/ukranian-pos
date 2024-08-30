@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\CashierController;
+use App\Http\Controllers\DiscountController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\PumpController;
@@ -62,6 +63,9 @@ Route::middleware('auth:cashier')->group(function () {
 
     // Electronic Journal Controller
     Route::get('/get-journals', [ElectricJournalController::class, 'getJournal']);
+
+    // DiscountController
+    Route::get('/get-discount', [DiscountController::class, 'getDiscount']);
 });
 
 Route::get('/test-print', [TestController::class, 'testPrint']);

@@ -13,6 +13,7 @@ import {
     ModalContent,
     ModalHeader,
     ModalFooter,
+    Divider,
 } from "@nextui-org/react";
 import PumpDelivery from "./PumpDelivery";
 import { CheckIcon } from "../Icon";
@@ -20,6 +21,7 @@ import { IoCloseCircle } from "react-icons/io5";
 import { getPumpStatusColor } from "./PumpStatus";
 import axios from "axios";
 import toast from "react-hot-toast";
+import { GrClose } from "react-icons/gr";
 
 export const PumpCard = ({ pump, handleAppendDeliveryData }) => {
     const showButtons =
@@ -131,7 +133,7 @@ export const PumpCard = ({ pump, handleAppendDeliveryData }) => {
                     <PumpDelivery
                         pumpId={pump.Id}
                         onAppend={handleAppendDeliveryData}
-                        // disabled={pump.Type === "PumpOfflineStatus"}
+                        disabled={pump.Type === "PumpOfflineStatus"}
                     />
                     <Chip
                         size="lg"
@@ -242,6 +244,7 @@ export const PumpCard = ({ pump, handleAppendDeliveryData }) => {
                             size="sm"
                             color="success"
                             onClick={() => handleAuthorize(pump)}
+                            className="w-full"
                         >
                             AUTHORIZE
                         </Button>
@@ -250,6 +253,7 @@ export const PumpCard = ({ pump, handleAppendDeliveryData }) => {
                             onClick={() =>
                                 setShowingPumpButtons(!showingPumpButtons)
                             }
+                            className="w-full"
                         >
                             CONTROLS
                         </Button>
@@ -257,6 +261,7 @@ export const PumpCard = ({ pump, handleAppendDeliveryData }) => {
                 )}
             </Card>
             <Modal
+                hideCloseButton
                 placement="center"
                 classNames={{
                     backdrop:
@@ -266,7 +271,9 @@ export const PumpCard = ({ pump, handleAppendDeliveryData }) => {
                 onClose={() => setShowingPumpButtons(false)}
             >
                 <ModalContent>
-                    <ModalHeader>Pump ({pump.Id}) Controls </ModalHeader>
+                    <ModalHeader className="text-xl font-extrabold">
+                        Pump ({pump.Id}) Controls{" "}
+                    </ModalHeader>
                     <ModalBody>
                         <div className="grid grid-cols-2 gap-4 p-4">
                             <Button
@@ -299,13 +306,15 @@ export const PumpCard = ({ pump, handleAppendDeliveryData }) => {
                             </Button>
                         </div>
                     </ModalBody>
+                    <Divider />
                     <ModalFooter>
                         <Button
+                            isIconOnly
                             color="danger"
                             variant="flat"
                             onClick={() => setShowingPumpButtons(false)}
                         >
-                            Close
+                            <GrClose className="w-5 h-5" />
                         </Button>
                     </ModalFooter>
                 </ModalContent>

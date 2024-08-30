@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, Suspense } from "react";
 import { Head } from "@inertiajs/react";
 import {
     Card,
@@ -7,15 +7,7 @@ import {
     Tabs,
     Tab,
     Spacer,
-    Table,
-    TableHeader,
-    TableColumn,
-    TableBody,
-    TableRow,
-    TableCell,
     Input,
-    table,
-    Divider,
 } from "@nextui-org/react";
 import Swal from "sweetalert2";
 import axios from "axios";
@@ -484,123 +476,126 @@ export default function Home() {
         <>
             <Head title="Home" />
             <audio ref={audioRef} src="assets/audio/nozzle-status-sound.wav" />
-            <main>
-                <Card className="grid lg:grid-cols-2 gap-2 p-2 h-[100vh]">
-                    <Card className="dark:bg-gray-900 p-2 flex flex-col h-full">
-                        {/* Sale Header */}
-                        <div className="flex-none h-[20%]">
-                            <Card className="max-w-full h-full">
-                                <CardHeader className="justify-between">
-                                    <GetCashier />
-                                    <GetDateTime />
-                                </CardHeader>
-                                <CardBody className="justify-between">
-                                    <div className="flex gap-4">
-                                        <div className="w-[70%] h-[70px] bg-slate-200 rounded-lg shadow-sm relative">
-                                            <ToastContainer
-                                                position="top-right"
-                                                autoClose={2000}
-                                                hideProgressBar={false}
-                                                newestOnTop={false}
-                                                closeOnClick
-                                                rtl={false}
-                                                pauseOnFocusLoss
-                                                draggable
-                                                pauseOnHover={true}
-                                                theme="light"
-                                                transition={Zoom}
-                                                style={{
-                                                    position: "absolute",
-                                                    top: 0,
-                                                    right: 0,
-                                                    bottom: 0,
-                                                    left: 0,
-                                                    width: "100%",
-                                                    height: "50%",
-                                                }}
-                                            />
-                                        </div>
-                                        <PrinterStatus />
-                                        <ThemeSwitcher />
+            <main className="grid grid-cols-2 gap-2 p-2 h-[100vh]">
+                <Card className="dark:bg-gray-900 p-2">
+                    {/* Sale Header */}
+                    <div className="flex-none">
+                        <Card className="max-w-full h-full">
+                            <CardHeader className="justify-between">
+                                <GetCashier />
+                                <GetDateTime />
+                            </CardHeader>
+                            <CardBody className="justify-between">
+                                <div className="flex gap-4">
+                                    <div className="w-[70%] h-[70px] bg-slate-200 rounded-lg shadow-sm relative">
+                                        <ToastContainer
+                                            position="top-right"
+                                            autoClose={2000}
+                                            hideProgressBar={false}
+                                            newestOnTop={false}
+                                            closeOnClick
+                                            rtl={false}
+                                            pauseOnFocusLoss
+                                            draggable
+                                            pauseOnHover={true}
+                                            theme="light"
+                                            transition={Zoom}
+                                            style={{
+                                                position: "absolute",
+                                                top: 0,
+                                                right: 0,
+                                                bottom: 0,
+                                                left: 0,
+                                                width: "100%",
+                                                height: "50%",
+                                            }}
+                                        />
                                     </div>
-                                </CardBody>
-                            </Card>
-                        </div>
-                        <Spacer y={3} />
-                        {/* Sale Window */}
-                        <div className="flex-grow">
-                            <SaleWindowTabs
-                                deliveryData={deliveryData}
-                                setSelectedRow={setSelectedRow}
-                                subtotal={subtotal}
-                                transactionSaved={transactionSaved}
-                                transactionSummary={transactionSummary}
-                            />
-                        </div>
-                        {/* POS Keyboard */}
-                        <div className="flex-none">
-                            <Card className="w-full gap-2 p-2">
-                                <div className="flex gap-2">
-                                    <Input
-                                        variant="bordered"
-                                        label={
-                                            <p className="font-bold text-xl">
-                                                SUBTOTAL
-                                            </p>
-                                        }
-                                        size="lg"
-                                        value={`₱${subtotal}`}
-                                        labelPlacement="outside-left"
-                                        className="w-[40%]"
-                                        classNames={{
-                                            input: [
-                                                "text-black text-xl font-bold text-right",
-                                            ],
-                                        }}
-                                        isReadOnly
-                                    />
-                                    <Input
-                                        variant="bordered"
-                                        className="w-[60%]"
-                                        classNames={{
-                                            input: [
-                                                "text-black text-2xl font-bold text-right",
-                                            ],
-                                        }}
-                                        value={inputValue}
-                                        isReadOnly
-                                        size="lg"
-                                    />
+                                    <PrinterStatus />
+                                    <ThemeSwitcher />
                                 </div>
+                            </CardBody>
+                        </Card>
+                    </div>
+                    <Spacer y={3} />
+                    {/* Sale Window */}
+                    <div className="flex-grow">
+                        <SaleWindowTabs
+                            deliveryData={deliveryData}
+                            setSelectedRow={setSelectedRow}
+                            subtotal={subtotal}
+                            transactionSaved={transactionSaved}
+                            transactionSummary={transactionSummary}
+                        />
+                    </div>
+                    {/* POS Keyboard */}
+                    <div className="flex-none">
+                        <Card className="w-full gap-2 p-2">
+                            <div className="flex gap-2">
+                                <Input
+                                    variant="bordered"
+                                    label={
+                                        <p className="font-bold text-xl">
+                                            SUBTOTAL
+                                        </p>
+                                    }
+                                    size="lg"
+                                    value={`₱${subtotal}`}
+                                    labelPlacement="outside-left"
+                                    className="w-[40%]"
+                                    classNames={{
+                                        input: [
+                                            "text-black text-xl font-bold text-right",
+                                        ],
+                                    }}
+                                    isReadOnly
+                                />
+                                <Input
+                                    variant="bordered"
+                                    className="w-[60%]"
+                                    classNames={{
+                                        input: [
+                                            "text-black text-2xl font-bold text-right",
+                                        ],
+                                    }}
+                                    value={inputValue}
+                                    isReadOnly
+                                    size="lg"
+                                />
+                            </div>
 
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
-                                    <POSKeyboard
-                                        handleButtonClick={handleButtonClick}
-                                        buttons={buttons}
-                                        buttonClickHandlers={
-                                            buttonClickHandlers
-                                        }
-                                        setInputValue={setInputValue}
-                                    />
-                                </div>
-                            </Card>
-                        </div>
-                    </Card>
-                    {/* Pumps */}
-                    <Card className="dark:bg-gray-900 p-2">
-                        <div className="flex w-full flex-col">
-                            <Tabs aria-label="Pumps" fullWidth>
-                                <Tab key="pumps" title="PUMPS">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-1">
+                                <POSKeyboard
+                                    handleButtonClick={handleButtonClick}
+                                    buttons={buttons}
+                                    buttonClickHandlers={buttonClickHandlers}
+                                    setInputValue={setInputValue}
+                                />
+                            </div>
+                        </Card>
+                    </div>
+                </Card>
+                {/* Pumps */}
+                <Card className="dark:bg-gray-900 p-2">
+                    <div className="flex w-full flex-col">
+                        <Tabs aria-label="Pumps" fullWidth>
+                            <Tab
+                                key="pumps"
+                                title={<p className="font-extrabold">PUMPS</p>}
+                            >
+                                <Suspense fallback={<div>Loading...</div>}>
                                     {pumpStatus.length === 0 ? (
-                                        <div className="flex flex-col items-center mt-6">
-                                            <FaGasPump className="w-12 h-12 text-danger" />
-                                            <span className="mt-4">
-                                                No pumps found
-                                            </span>
+                                        <div className="flex items-center justify-center min-h-screen">
+                                            <div className="flex flex-col items-center mt-6">
+                                                <FaGasPump className="w-12 h-12 text-danger" />
+                                                <span className="font-bold text-xl mt-4">
+                                                    No pumps found!
+                                                </span>
+                                            </div>
                                         </div>
                                     ) : (
                                         <div className="overflow-y-auto scrollbar-hide max-h-screen p-1">
-                                            <div className="grid grid-cols-4 gap-2">
+                                            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
                                                 {pumpStatus.map((pump) => (
                                                     <PumpCard
                                                         key={pump.Id}
@@ -613,25 +608,36 @@ export default function Home() {
                                             </div>
                                         </div>
                                     )}
-                                </Tab>
+                                </Suspense>
+                            </Tab>
 
-                                <Tab key="mop" title="MOP">
-                                    <MOPCard
-                                        mopList={mopList}
-                                        onSelectMOP={handleSelectMOP}
-                                    />
-                                </Tab>
+                            <Tab
+                                key="mop"
+                                title={<p className="font-extrabold">MOP</p>}
+                            >
+                                <MOPCard
+                                    mopList={mopList}
+                                    onSelectMOP={handleSelectMOP}
+                                />
+                            </Tab>
 
-                                <Tab key="reports" title="REPORTS">
-                                    <ReportsIndex />
-                                </Tab>
+                            <Tab
+                                key="reports"
+                                title={
+                                    <p className="font-extrabold">REPORTS</p>
+                                }
+                            >
+                                <ReportsIndex />
+                            </Tab>
 
-                                <Tab key="config" title="CONFIG">
-                                    <Index />
-                                </Tab>
-                            </Tabs>
-                        </div>
-                    </Card>
+                            <Tab
+                                key="config"
+                                title={<p className="font-extrabold">CONFIG</p>}
+                            >
+                                <Index />
+                            </Tab>
+                        </Tabs>
+                    </div>
                 </Card>
             </main>
             <CustomerDetails

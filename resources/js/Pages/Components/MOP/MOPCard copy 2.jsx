@@ -13,7 +13,6 @@ import {
     ListboxSection,
     Divider,
     CardHeader,
-    Skeleton,
 } from "@nextui-org/react";
 import { SiContactlesspayment } from "react-icons/si";
 
@@ -150,6 +149,17 @@ const MOPCard = ({ mopList, onSelectMOP }) => {
                                     </div>
                                 </Card>
                             ))}
+                            <Card
+                                isPressable
+                                onPress={handleOtherMOPClick}
+                                className="fixed bottom-5 p-2 h-[200px]"
+                            >
+                                <div className="flex justify-center items-center h-full">
+                                    <h1 className="text-xl font-extrabold">
+                                        OTHER MOP
+                                    </h1>
+                                </div>
+                            </Card>
                         </>
                     ) : (
                         <div className="col-span-4 flex flex-col items-center justify-center py-12 text-xl font-extrabold text-center text-red-500">
@@ -157,17 +167,6 @@ const MOPCard = ({ mopList, onSelectMOP }) => {
                             No payment method found!
                         </div>
                     )}
-                    <Card
-                        isPressable
-                        onPress={handleOtherMOPClick}
-                        className="fixed bottom-5 p-2 h-[200px]"
-                    >
-                        <div className="flex justify-center items-center h-full">
-                            <h1 className="text-xl font-extrabold">
-                                OTHER MOP
-                            </h1>
-                        </div>
-                    </Card>
                 </div>
             )}
 
@@ -206,15 +205,7 @@ const MOPCard = ({ mopList, onSelectMOP }) => {
                             </ModalHeader>
                             <ModalBody className="grid grid-cols-2 gap-2">
                                 {loadingDiscounts ? (
-                                    <div className="max-w-[300px] w-full flex items-center gap-3">
-                                        <div>
-                                            <Skeleton className="flex rounded-full w-12 h-12" />
-                                        </div>
-                                        <div className="w-full flex flex-col gap-2">
-                                            <Skeleton className="h-3 w-3/5 rounded-lg" />
-                                            <Skeleton className="h-3 w-4/5 rounded-lg" />
-                                        </div>
-                                    </div>
+                                    <div>Loading discounts...</div>
                                 ) : (
                                     <Card>
                                         <Listbox aria-label="Discounts">

@@ -43,7 +43,7 @@ const SaleWindowTabs = ({
         <>
             <Tabs aria-label="Sale Window">
                 <Tab key="window1" title="WINDOW 1">
-                    <Card className="p-2 h-[340px]">
+                    <Card className="p-2">
                         <Table
                             removeWrapper
                             isHeaderSticky
@@ -60,8 +60,8 @@ const SaleWindowTabs = ({
                             <TableBody
                                 items={formattedItems}
                                 emptyContent={
-                                    <h1 className="text-xl font-extrabold mt-20">
-                                        No transactions yet.
+                                    <h1 className="text-xl font-extrabold">
+                                        No Transactions!
                                     </h1>
                                 }
                             >

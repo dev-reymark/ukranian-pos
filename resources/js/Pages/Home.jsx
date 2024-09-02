@@ -26,6 +26,7 @@ import Index from "./Config/Index";
 import { CardDetails } from "./Components/MOP/CardDetails";
 import SaleWindowTabs from "./Components/Sale/SaleWindowTabs";
 import ReportsIndex from "./Components/Reports/ReportsIndex";
+import { GiGasPump } from "react-icons/gi";
 
 export default function Home() {
     const [data, setData] = useState([]);
@@ -476,7 +477,7 @@ export default function Home() {
         <>
             <Head title="Home" />
             <audio ref={audioRef} src="assets/audio/nozzle-status-sound.wav" />
-            <main className="grid grid-cols-2 gap-2 p-2 h-[100vh]">
+            <main className="grid grid-cols-1 md:grid-cols-2 gap-2 p-2 h-[100vh]">
                 <Card className="dark:bg-gray-900 p-2">
                     {/* Sale Header */}
                     <div className="flex-none">
@@ -497,7 +498,7 @@ export default function Home() {
                                             rtl={false}
                                             pauseOnFocusLoss
                                             draggable
-                                            pauseOnHover={true}
+                                            pauseOnHover={false}
                                             theme="light"
                                             transition={Zoom}
                                             style={{
@@ -585,13 +586,9 @@ export default function Home() {
                             >
                                 <Suspense fallback={<div>Loading...</div>}>
                                     {pumpStatus.length === 0 ? (
-                                        <div className="flex items-center justify-center min-h-screen">
-                                            <div className="flex flex-col items-center mt-6">
-                                                <FaGasPump className="w-12 h-12 text-danger" />
-                                                <span className="font-bold text-xl mt-4">
-                                                    No pumps found!
-                                                </span>
-                                            </div>
+                                        <div className="col-span-4 flex flex-col items-center justify-center py-12 text-xl font-extrabold text-center text-red-500">
+                                            <GiGasPump className="text-7xl" />
+                                            <p>No pumps connected!</p>
                                         </div>
                                     ) : (
                                         <div className="overflow-y-auto scrollbar-hide max-h-screen p-1">

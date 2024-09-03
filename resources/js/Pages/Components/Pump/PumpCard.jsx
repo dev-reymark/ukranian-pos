@@ -144,7 +144,7 @@ export const PumpCard = ({ pump, handleAppendDeliveryData }) => {
                         avatar={
                             <Avatar
                                 name={pump.Data.Pump.toString()}
-                                getInitials={(name) => name.charAt(0)}
+                                getInitials={(name) => name.charAt()}
                             />
                         }
                     >

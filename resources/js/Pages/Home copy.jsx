@@ -1,8 +1,17 @@
 import React, { useState, useEffect, useRef, Suspense } from "react";
 import { Head } from "@inertiajs/react";
-import { Card, CardHeader, CardBody, Tabs, Tab, Spacer, Input } from "@nextui-org/react";
+import {
+    Card,
+    CardHeader,
+    CardBody,
+    Tabs,
+    Tab,
+    Spacer,
+    Input,
+} from "@nextui-org/react";
 import Swal from "sweetalert2";
 import axios from "axios";
+import { FaGasPump } from "react-icons/fa";
 import { ToastContainer, Zoom, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import MOPCard from "./Components/MOP/MOPCard";

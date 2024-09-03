@@ -38,6 +38,7 @@ Route::middleware('auth:cashier')->group(function () {
     Route::get('/get-fuel-grades', [PumpController::class, 'getFuelGradesConfiguration'])->name('fuel.grades');
     Route::get('/get-pump-nozzle', [PumpController::class, 'getNozzlesConfiguration']);
     Route::post('/stop-all-pumps', [PumpController::class, 'stopAllPumps']);
+    Route::post('/authorize-all-pumps', [PumpController::class, 'authorizeAllPumps']);
 
     // FinalisationController
     Route::get('/get-mop', [FinalisationController::class, 'getMOP'])->name('getMOP');

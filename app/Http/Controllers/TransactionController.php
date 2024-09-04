@@ -76,6 +76,7 @@ class TransactionController extends Controller
                 'Item_Price' => $pump['Price'],
                 'Item_Quantity' => $pump['Volume'],
                 'Item_Value' => $pump['Amount'],
+                // 'Item_Discount_Total' => $pump['DiscountedAmount'],
             ]);
             $itemNumber++;
 

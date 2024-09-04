@@ -56,8 +56,6 @@ export default function Home() {
     const [approvalCode, setApprovalCode] = useState("");
     const [cardHolderName, setCardHolderName] = useState("");
 
-    const [selectedDiscount, setSelectedDiscount] = useState("");
-    const [selectedPreset, setSelectedPreset] = useState(null);
     const handleLogout = async () => {
         const result = await Swal.fire({
             title: "Are you sure?",
@@ -400,6 +398,7 @@ export default function Home() {
         change: 0,
         mopNames: [],
         mopPayments: [],
+        deliveryData: [],
     });
 
     const handleApplyDiscount = (selectedDiscount, preset) => {
@@ -414,6 +413,7 @@ export default function Home() {
             selectedDiscount.discount_id <= 4
         ) {
             toast.info("Discount not applicable");
+            return;
         }
 
         console.log("Selected Row:", selectedRow);
@@ -456,6 +456,7 @@ export default function Home() {
 
                 return {
                     ...item,
+                    OriginalAmount: item.Amount,
                     Amount: discountedAmount.toFixed(2),
                     DiscountedAmount: discountAmount.toFixed(2),
                     PresetName: preset?.preset_name,
@@ -510,6 +511,7 @@ export default function Home() {
                     Volume: item.Volume,
                     Price: item.Price,
                     Amount: item.Amount,
+                    OriginalAmount: item.OriginalAmount,
                     DiscountedAmount: item.DiscountedAmount,
                     PresetName: item.PresetName,
                     FuelGradeName: item.FuelGradeName,
@@ -542,6 +544,7 @@ export default function Home() {
                         (payment) => payment.mopName
                     ),
                     mopPayments: transactionData.payments,
+                    deliveryData: deliveryData,
                 });
 
                 localStorage.removeItem("transaction");

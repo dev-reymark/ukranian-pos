@@ -1,6 +1,14 @@
 import React, { useState, useEffect, useRef, Suspense } from "react";
 import { Head } from "@inertiajs/react";
-import { Card, CardHeader, CardBody, Tabs, Tab, Spacer, Input } from "@nextui-org/react";
+import {
+    Card,
+    CardHeader,
+    CardBody,
+    Tabs,
+    Tab,
+    Spacer,
+    Input,
+} from "@nextui-org/react";
 import Swal from "sweetalert2";
 import axios from "axios";
 import { ToastContainer, Zoom, toast } from "react-toastify";
@@ -48,6 +56,8 @@ export default function Home() {
     const [approvalCode, setApprovalCode] = useState("");
     const [cardHolderName, setCardHolderName] = useState("");
 
+    const [selectedDiscount, setSelectedDiscount] = useState("");
+    const [selectedPreset, setSelectedPreset] = useState(null);
     const handleLogout = async () => {
         const result = await Swal.fire({
             title: "Are you sure?",
@@ -391,6 +401,73 @@ export default function Home() {
         mopNames: [],
         mopPayments: [],
     });
+
+    const handleApplyDiscount = (selectedDiscount, preset) => {
+        if (selectedRow === null || selectedRow === undefined) {
+            toast.error("Please select an item to apply discount");
+            return;
+        }
+
+        // Check if discount_id is 1 to 4
+        if (
+            selectedDiscount.discount_id >= 1 &&
+            selectedDiscount.discount_id <= 4
+        ) {
+            toast.info("Discount not applicable");
+        }
+
+        console.log("Selected Row:", selectedRow);
+        console.log("Selected Discount:", selectedDiscount);
+        console.log("Selected Preset:", preset);
+
+        const updatedData = deliveryData.map((item) => {
+            if (item.Delivery_ID === selectedRow) {
+                let discountAmount = 0;
+
+                console.log(
+                    "Selected Discount Type:",
+                    selectedDiscount?.discount_type
+                );
+                console.log("Preset Value:", preset?.preset_value);
+
+                switch (selectedDiscount?.discount_type) {
+                    case "1": // Percentage
+                        discountAmount =
+                            (parseFloat(item.Amount) *
+                                parseFloat(preset?.preset_value)) /
+                            100;
+                        break;
+                    case "2": // Price per liter
+                        discountAmount =
+                            parseFloat(item.Volume) *
+                            parseFloat(preset?.preset_value);
+                        break;
+                    case "3": // Fixed price
+                        discountAmount = parseFloat(preset?.preset_value);
+                        break;
+                    default:
+                        break;
+                }
+
+                console.log("Calculated Discount Amount:", discountAmount);
+
+                const discountedAmount =
+                    parseFloat(item.Amount) - discountAmount;
+
+                return {
+                    ...item,
+                    Amount: discountedAmount.toFixed(2),
+                    DiscountedAmount: discountAmount.toFixed(2),
+                    PresetName: preset?.preset_name,
+                };
+            }
+            return item;
+        });
+
+        setDeliveryData(updatedData);
+        toast.success("Discount applied.");
+    };
+
     // Save transaction with selected MOP
     const saveTransaction = async () => {
         const transactionData = JSON.parse(localStorage.getItem("transaction"));
@@ -433,6 +510,8 @@ export default function Home() {
                     Volume: item.Volume,
                     Price: item.Price,
                     Amount: item.Amount,
+                    DiscountedAmount: item.DiscountedAmount,
+                    PresetName: item.PresetName,
                     FuelGradeName: item.FuelGradeName,
                 })),
                 customer: {
@@ -622,6 +701,7 @@ export default function Home() {
                                 <MOPCard
                                     mopList={mopList}
                                     onSelectMOP={handleSelectMOP}
+                                    onApplyDiscount={handleApplyDiscount}
                                 />
                             </Tab>
 
@@ -693,6 +773,6 @@ export default function Home() {
                     await saveTransaction();
                 }}
             />
-        </> 
+        </>
     );
 }

@@ -78,6 +78,20 @@ class TransactionController extends Controller
                 'Item_Value' => $pump['Amount'],
             ]);
             $itemNumber++;
+
+            // Add discount item if DiscountedAmount and PresetName are present
+            if (isset($pump['DiscountedAmount']) && isset($pump['PresetName'])) {
+                TransactionItem::create([
+                    'Transaction_ID' => $transaction->Transaction_ID,
+                    'Item_Description' => $pump['PresetName'],
+                    'Item_Number' => $itemNumber,
+                    'Item_Type' => 52, // Discount
+                    'Item_Price' => 0,
+                    'Item_Quantity' => 1,
+                    'Item_Value' => $pump['DiscountedAmount'],
+                ]);
+                $itemNumber++;
+            }
         }
         // Add `mopPayments`
         foreach ($validated['mopPayments'] as $payment) {

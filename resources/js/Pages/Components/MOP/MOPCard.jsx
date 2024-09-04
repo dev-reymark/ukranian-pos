@@ -41,7 +41,7 @@ const otherMOPs = [
     },
 ];
 
-const MOPCard = ({ mopList, onSelectMOP }) => {
+const MOPCard = ({ mopList, onSelectMOP, onApplyDiscount }) => {
     const [showOtherMOPs, setShowOtherMOPs] = useState(false);
     const [selectedMOP, setSelectedMOP] = useState(null);
     const [isDiscountModalOpen, setDiscountModalOpen] = useState(false);
@@ -99,6 +99,18 @@ const MOPCard = ({ mopList, onSelectMOP }) => {
         setSelectedDiscount(discount);
         setSelectedDiscountPresets(discount.presets);
     };
+
+    const handlePresetClick = (preset) => {
+        if (selectedDiscount && onApplyDiscount) {
+            console.log("Selected Discount:", selectedDiscount);
+            console.log("Selected Discount Type:", selectedDiscount.discount_type); // Correct access
+            console.log("Selected Preset:", preset);
+            console.log("Preset Value:", preset.preset_value); // Correct access
+            onApplyDiscount(selectedDiscount, preset);
+        }
+        setDiscountModalOpen(false); // Close the modal after applying the discount
+    };
+    
 
     return (
         <div className="relative">
@@ -264,6 +276,11 @@ const MOPCard = ({ mopList, onSelectMOP }) => {
                                                 (preset) => (
                                                     <ListboxItem
                                                         key={preset.preset_id}
+                                                        onClick={() =>
+                                                            handlePresetClick(
+                                                                preset
+                                                            )
+                                                        }
                                                     >
                                                         {preset.preset_name}
                                                     </ListboxItem>

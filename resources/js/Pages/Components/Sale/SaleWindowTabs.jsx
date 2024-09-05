@@ -41,7 +41,7 @@ const SaleWindowTabs = ({
                 <Tab key="window1" title="WINDOW 1">
                     <Card className="p-2">
                         <div className="overflow-x-auto">
-                            <div className="h-[250px] xl:h-[400px] overflow-y-auto">
+                            <div className="h-[250px] xl:h-[300px] overflow-y-auto">
                                 <table className="min-w-full divide-y divide-gray-200">
                                     <thead className="bg-gray-50 sticky top-0">
                                         <tr>

@@ -281,7 +281,6 @@ class TransactionController extends Controller
 
         // Initialize totals
         $totalVolume = 0;
-        $cashTotal = 0;
         $changeTotal = 0;
 
         // Print items, excluding CASH and CHANGE
@@ -309,7 +308,7 @@ class TransactionController extends Controller
                 $this->printer->text(sprintf("%s\n", $itemDescription));
                 $receiptContent .= sprintf("%s\n", $itemDescription);
 
-                // Print Item_Value directly
+                // Print Item_Value with parentheses around 'P' and value
                 $this->printer->text(sprintf(
                     "%-{$fieldWidth}s %{$fieldWidth}s\n",
                     sprintf("%6.2f x %6.2f", $itemQuantity, $itemPrice),
@@ -338,10 +337,12 @@ class TransactionController extends Controller
                     sprintf("%6.2fL x %6.2f P/L", $itemQuantity, $itemPrice),
                     sprintf("P%6.2f", $itemTotal)
                 );
-            }
 
-            $totalVolume += $itemQuantity;
+                // Accumulate total volume only for non-discount items
+                $totalVolume += $itemQuantity;
+            }
         }
+
         $this->printer->feed(1);
         $receiptContent .= "\n";
 
@@ -446,7 +447,7 @@ class TransactionController extends Controller
             }
         }
 
-        // // Define the file path
+        // // // Define the file path
         // $filePath = storage_path("app/public/receipt_$transactionId.txt");
 
         // // Write content to file

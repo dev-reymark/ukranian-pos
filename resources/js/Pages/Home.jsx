@@ -102,20 +102,34 @@ export default function Home() {
         setInputValue("");
     };
 
+    const handleToast = (message, type) => {
+        if (type === "success") {
+            toast.success(message);
+        } else if (type === "error") {
+            toast.error(message);
+        }
+    };
+
     const handleSubTotal = () => {
         setInputValue(`Subtotal: ₱${subtotal}`);
     };
 
     const handleVoidAll = () => {
         if (deliveryData.length === 0) {
-            toast.error("No transactions to void");
+            toast.error("No items to void");
             return;
         }
         setDeliveryData([]);
+        setTimeout(() => {
+            console.log("DeliveryData after reset:", deliveryData); // Check if it’s empty
+        }, 0);
         localStorage.removeItem("transaction");
         localStorage.removeItem("deliveryData");
         localStorage.removeItem("disabledIds");
-        toast.success("All transactions voided.");
+        toast.success("All items voided");
+
+        setTransactionSaved(false);
+        setTransactionSummary({ mopPayments: [], change: 0 });
 
         // Reset change
         setTotalPaid(0);
@@ -134,7 +148,7 @@ export default function Home() {
             );
             setDeliveryData(updatedData);
             localStorage.setItem("deliveryData", JSON.stringify(updatedData));
-            toast.success("Transaction voided");
+            toast.success("Item voided");
             setSelectedRow(null);
 
             // Recompute subtotal based on remaining items
@@ -168,7 +182,7 @@ export default function Home() {
                 window.dispatchEvent(new Event("disabledIdsUpdated"));
             }
         } else {
-            toast.error("No transaction selected");
+            toast.error("No item to void");
         }
     };
     // Handle user interaction to enable sound playback
@@ -252,7 +266,7 @@ export default function Home() {
         try {
             // Send request to stop all pumps
             const response = await axios.post("/stop-all-pumps");
-            toast.success("All pumps stopped successfully");
+            toast.success("All pumps stopped");
             console.log("All pumps stopped:", response.data);
 
             // Update state if needed or perform additional actions
@@ -269,7 +283,7 @@ export default function Home() {
             };
             // Send request to authorize all pumps
             const response = await axios.post("/authorize-all-pumps", payload);
-            toast.success("All pumps authorized successfully");
+            toast.success("All pumps authorized");
             console.log("All pumps authorized:", response.data);
         } catch (error) {
             toast.error("Error authorizing all pumps");
@@ -295,7 +309,7 @@ export default function Home() {
     const handleOpenDrawer = async () => {
         try {
             const response = await axios.get("/open-cash-drawer");
-            toast.success("Drawer opened successfully");
+            toast.success("Drawer opened");
             console.log("Drawer opened:", response.data);
         } catch (error) {
             toast.error("Error opening drawer");
@@ -422,6 +436,11 @@ export default function Home() {
 
         const updatedData = deliveryData.map((item) => {
             if (item.Delivery_ID === selectedRow) {
+                // Check if item already has a discount
+                if (item.DiscountedAmount) {
+                    toast.info("Discount already applied to this item.");
+                    return item; // No changes if discount already applied
+                }
                 let discountAmount = 0;
 
                 console.log(
@@ -460,6 +479,8 @@ export default function Home() {
                     Amount: discountedAmount.toFixed(2),
                     DiscountedAmount: discountAmount.toFixed(2),
                     PresetName: preset?.preset_name,
+                    DiscountType: selectedDiscount?.discount_type,
+                    PresetValue: preset?.preset_value,
                 };
             }
             return item;
@@ -473,7 +494,7 @@ export default function Home() {
     const saveTransaction = async () => {
         const transactionData = JSON.parse(localStorage.getItem("transaction"));
         if (!transactionData) {
-            toast.error("No transaction data found");
+            toast.error("No transaction found");
             return;
         }
 
@@ -513,7 +534,9 @@ export default function Home() {
                     Amount: item.Amount,
                     OriginalAmount: item.OriginalAmount,
                     DiscountedAmount: item.DiscountedAmount,
+                    DiscountType: item.DiscountType,
                     PresetName: item.PresetName,
+                    PresetValue: item.PresetValue,
                     FuelGradeName: item.FuelGradeName,
                 })),
                 customer: {
@@ -532,7 +555,7 @@ export default function Home() {
             const transactionId = response.data.transaction;
             if (transactionId) {
                 localStorage.setItem("transactionId", transactionId);
-                toast.success("Transaction saved successfully");
+                toast.success("Transaction saved");
                 setTransactionSaved(true);
                 setRemainingBalance(0);
                 setInputValue("Transaction Complete");
@@ -689,6 +712,7 @@ export default function Home() {
                                                         handleAppendDeliveryData={
                                                             handleAppendDeliveryData
                                                         }
+                                                        onToast={handleToast}
                                                     />
                                                 ))}
                                             </div>

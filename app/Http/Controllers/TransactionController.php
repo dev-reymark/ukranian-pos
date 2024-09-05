@@ -82,13 +82,27 @@ class TransactionController extends Controller
 
             // Add discount item if DiscountedAmount and PresetName are present
             if (isset($pump['DiscountedAmount']) && isset($pump['PresetName'])) {
+                if ($pump['DiscountType'] == '1') {
+                    $itemPrice = $pump['PresetValue'];
+                    $itemQuantity = $pump['OriginalAmount']; // Assuming 'Amount' represents the subtotal
+                } elseif ($pump['DiscountType'] == '2') {
+                    $itemPrice = $pump['PresetValue'];
+                    $itemQuantity = $pump['Volume'];
+                } elseif ($pump['DiscountType'] == '3') {
+                    $itemPrice = $pump['PresetValue'];
+                    $itemQuantity = 1; // Fixed quantity for discount type 3
+                } else {
+                    $itemPrice = 0;
+                    $itemQuantity = 1;
+                }
+
                 TransactionItem::create([
                     'Transaction_ID' => $transaction->Transaction_ID,
                     'Item_Description' => $pump['PresetName'],
                     'Item_Number' => $itemNumber,
                     'Item_Type' => 52, // Discount
-                    'Item_Price' => 0,
-                    'Item_Quantity' => 1,
+                    'Item_Price' => $itemPrice,
+                    'Item_Quantity' => $itemQuantity,
                     'Item_Value' => $pump['DiscountedAmount'],
                 ]);
                 $itemNumber++;
@@ -256,6 +270,14 @@ class TransactionController extends Controller
         $this->printer->feed(1);
         $receiptContent .= "\n";
 
+        // Print invoice header
+        $this->printer->setJustification(Printer::JUSTIFY_CENTER);
+        $this->printer->text("*** SALES INVOICE ***\n");
+        $this->printer->feed(1); // Adds a line feed after the header
+        $receiptContent .= "*** SALES INVOICE ***\n\n"; // Add header to receipt content and extra newline
+
+        // Reset justification to left before printing items
+        $this->printer->setJustification(Printer::JUSTIFY_LEFT);
 
         // Initialize totals
         $totalVolume = 0;
@@ -278,24 +300,45 @@ class TransactionController extends Controller
             $itemDescription = trim($item->Item_Description);
             $itemQuantity = $item->Item_Quantity;
             $itemPrice = $item->Item_Price;
-            $itemTotal = $itemQuantity * $itemPrice;
+            $itemValue = $item->Item_Value;
 
-            // Print item description (left-justified)
-            $this->printer->setJustification(Printer::JUSTIFY_LEFT);
-            $this->printer->text(sprintf("$itemDescription\n"));
-            $receiptContent .= sprintf($itemDescription);
+            // Check if the item is a discount or of type 52
+            if ($item->Item_Type == 52 || isset($item->DiscountedAmount)) {
+                // Print item description (left-justified)
+                $this->printer->setJustification(Printer::JUSTIFY_LEFT);
+                $this->printer->text(sprintf("%s\n", $itemDescription));
+                $receiptContent .= sprintf("%s\n", $itemDescription);
 
-            // Print quantity, price per liter, and total
-            $this->printer->text(sprintf(
-                "%-{$fieldWidth}s %{$fieldWidth}s\n",
-                sprintf("%6.2fL x %6.2f P/L", $itemQuantity, $itemPrice),
-                sprintf("P%6.2f", $itemTotal)
-            ));
-            $receiptContent .= sprintf(
-                "%-{$fieldWidth}s %{$fieldWidth}s\n",
-                sprintf("%6.2fL x %6.2f P/L", $itemQuantity, $itemPrice),
-                sprintf("P%6.2f", $itemTotal)
-            );
+                // Print Item_Value directly
+                $this->printer->text(sprintf(
+                    "%-{$fieldWidth}s %{$fieldWidth}s\n",
+                    sprintf("%6.2f x %6.2f", $itemQuantity, $itemPrice),
+                    sprintf("(P%6.2f)", $itemValue)
+                ));
+                $receiptContent .= sprintf(
+                    "%-{$fieldWidth}s %{$fieldWidth}s\n",
+                    sprintf("%6.2f x %6.2f", $itemQuantity, $itemPrice),
+                    sprintf("(P%6.2f)", $itemValue)
+                );
+            } else {
+                // Print item description (left-justified)
+                $this->printer->setJustification(Printer::JUSTIFY_LEFT);
+                $this->printer->text(sprintf("%s\n", $itemDescription));
+                $receiptContent .= sprintf("%s\n", $itemDescription);
+
+                // Print quantity, price per liter, and total with P sign
+                $itemTotal = $itemQuantity * $itemPrice;
+                $this->printer->text(sprintf(
+                    "%-{$fieldWidth}s %{$fieldWidth}s\n",
+                    sprintf("%6.2fL x %6.2f P/L", $itemQuantity, $itemPrice),
+                    sprintf("P%6.2f", $itemTotal)
+                ));
+                $receiptContent .= sprintf(
+                    "%-{$fieldWidth}s %{$fieldWidth}s\n",
+                    sprintf("%6.2fL x %6.2f P/L", $itemQuantity, $itemPrice),
+                    sprintf("P%6.2f", $itemTotal)
+                );
+            }
 
             $totalVolume += $itemQuantity;
         }
@@ -403,9 +446,15 @@ class TransactionController extends Controller
             }
         }
 
-        // // Save receipt content to a text file
-        // $filePath = storage_path('receipts/receipt_' . $transactionId . '.txt');
+        // // Define the file path
+        // $filePath = storage_path("app/public/receipt_$transactionId.txt");
+
+        // // Write content to file
         // file_put_contents($filePath, $receiptContent);
+
+        // // Open the file with Notepad (Windows)
+        // $command = "notepad " . escapeshellarg($filePath);
+        // exec($command);
 
         // Cut the receipt
         $this->printer->cut();

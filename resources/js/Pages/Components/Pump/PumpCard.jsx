@@ -23,7 +23,7 @@ import axios from "axios";
 import toast from "react-hot-toast";
 import { GrClose } from "react-icons/gr";
 
-export const PumpCard = ({ pump, handleAppendDeliveryData }) => {
+export const PumpCard = ({ pump, handleAppendDeliveryData, onToast }) => {
     const showButtons =
         pump.Data.NozzleUp ||
         pump.Type === "PumpFillingStatus" ||
@@ -36,24 +36,24 @@ export const PumpCard = ({ pump, handleAppendDeliveryData }) => {
     const [showingPumpButtons, setShowingPumpButtons] = useState(false);
     const [authorizedPumps, setAuthorizedPumps] = useState([]);
 
-    const handleNozzleUp = (pumpId) => {
-        toast.success(`Nozzle is up for Pump ${pumpId}`);
-    };
+    // const handleNozzleUp = (pumpId) => {
+    //     onToast(`Nozzle is up for Pump ${pumpId}`, "success");
+    // };
 
-    useEffect(() => {
-        if (pump.Data.NozzleUp) {
-            handleNozzleUp(pump.Id);
-        }
-    }, [pump.Data.NozzleUp]);
+    // useEffect(() => {
+    //     if (pump.Data.NozzleUp) {
+    //         handleNozzleUp(pump.Id);
+    //     }
+    // }, [pump.Data.NozzleUp]);
 
     const authorizePump = async (pumpData) => {
         try {
             const response = await axios.post("/authorize-pump", pumpData);
-            toast.success("Pump authorized successfully");
+            onToast("Pump authorized", "success");
             console.log("Authorization successful:", response.data);
             return true;
         } catch (error) {
-            toast.error("Error authorizing pump");
+            onToast("Error authorizing pump:", error);
             console.error("Error authorizing pump:", error);
             return false;
         }
@@ -77,12 +77,13 @@ export const PumpCard = ({ pump, handleAppendDeliveryData }) => {
         axios
             .post("/stop-pump", { Pump: pumpId })
             .then((response) => {
-                toast.success("Pump stopped successfully");
+                onToast("Pump stopped", "success");
                 console.log("Pump stopped successfully:", response.data);
                 setAuthorizedPumps((prev) => ({ ...prev, [pumpId]: false }));
+                setShowingPumpButtons(false);
             })
             .catch((error) => {
-                toast.error("Error stopping pump");
+                onToast("Error stopping pump:", error);
                 console.error("Error stopping pump:", error);
             });
     };
@@ -91,11 +92,12 @@ export const PumpCard = ({ pump, handleAppendDeliveryData }) => {
         axios
             .post("/suspend", { Pump: pumpId })
             .then((response) => {
-                toast.success("Pump suspended successfully");
+                onToast("Pump suspended", "success");
                 console.log("Pump suspended successfully:", response.data);
+                setShowingPumpButtons(false);
             })
             .catch((error) => {
-                toast.error("Error suspending pump");
+                onToast("Error suspending pump:", error);
                 console.error("Error suspending pump:", error);
             });
     };
@@ -104,11 +106,12 @@ export const PumpCard = ({ pump, handleAppendDeliveryData }) => {
         axios
             .post("/resume", { Pump: pumpId })
             .then((response) => {
-                toast.success("Pump resumed successfully");
+                onToast("Pump resumed", "success");
                 console.log("Pump resumed successfully:", response.data);
+                setShowingPumpButtons(false);
             })
             .catch((error) => {
-                toast.error("Error resuming pump");
+                onToast("Error resumed pump:", error);
                 console.error("Error resuming pump:", error);
             });
     };
@@ -117,11 +120,12 @@ export const PumpCard = ({ pump, handleAppendDeliveryData }) => {
         axios
             .post("/emergency-stop", { Pump: pumpId })
             .then((response) => {
-                toast.success("Emergency stop activated");
+                onToast("Emergency stop activated", "success");
                 console.log("Emergency stop activated:", response.data);
+                setShowingPumpButtons(false);
             })
             .catch((error) => {
-                toast.error("Error performing emergency stop");
+                onToast("Error performing emergency stop:", error);
                 console.error("Error performing emergency stop:", error);
             });
     };
@@ -144,7 +148,7 @@ export const PumpCard = ({ pump, handleAppendDeliveryData }) => {
                         avatar={
                             <Avatar
                                 name={pump.Data.Pump.toString()}
-                                getInitials={(name) => name.charAt()}
+                                getInitials={(name) => name.slice(0, 2)}
                             />
                         }
                     >

@@ -9,6 +9,7 @@ const SaleWindowTabs = ({
     transactionSummary,
 }) => {
     const [showSummary, setShowSummary] = useState(false);
+    const [selectedRowId, setSelectedRowId] = useState(null); // State to track selected row
 
     useEffect(() => {
         if (transactionSaved) {
@@ -25,6 +26,7 @@ const SaleWindowTabs = ({
     const handleRowClick = (item) => {
         console.log("Row clicked:", item);
         setSelectedRow(item.Delivery_ID);
+        setSelectedRowId(item.Delivery_ID); // Set selected row ID
     };
 
     // Calculate the total discount, ensuring it is a number
@@ -39,80 +41,91 @@ const SaleWindowTabs = ({
                 <Tab key="window1" title="WINDOW 1">
                     <Card className="p-2">
                         <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200">
-                                <thead className="bg-gray-50">
-                                    <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            ITEM(S)
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            PRICE
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            VOLUME(L)
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            AMOUNT(₱)
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
-                                    {formattedItems.length === 0 ? (
+                            <div className="h-[250px] xl:h-[400px] overflow-y-auto">
+                                <table className="min-w-full divide-y divide-gray-200">
+                                    <thead className="bg-gray-50 sticky top-0">
                                         <tr>
-                                            <td
-                                                colSpan="6"
-                                                className="px-6 py-3 text-center text-xl font-extrabold"
-                                            >
-                                                No Transactions!
-                                            </td>
+                                            <th className="px-6 py-3 text-left text-xs font-extrabold uppercase tracking-wider">
+                                                ITEM(S)
+                                            </th>
+                                            <th className="px-6 py-3 text-left text-xs font-extrabold uppercase tracking-wider">
+                                                PRICE
+                                            </th>
+                                            <th className="px-6 py-3 text-left text-xs font-extrabold uppercase tracking-wider">
+                                                VOLUME(L)
+                                            </th>
+                                            <th className="px-6 py-3 text-left text-xs font-extrabold uppercase tracking-wider">
+                                                AMOUNT(₱)
+                                            </th>
                                         </tr>
-                                    ) : (
-                                        formattedItems.map((item) => (
-                                            <React.Fragment
-                                                key={item.Delivery_ID}
-                                            >
-                                                <tr
-                                                    onClick={() =>
-                                                        handleRowClick(item)
-                                                    }
-                                                    className="hover:bg-gray-100 cursor-pointer"
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-200">
+                                        {formattedItems.length === 0 ? (
+                                            <tr className="h-[200px] xl:h-[300px]">
+                                                <td
+                                                    colSpan="6"
+                                                    className="px-6 py-3 text-center text-xl font-extrabold text-gray-400"
                                                 >
-                                                    <td className="uppercase px-6 py-4 whitespace-nowrap">
-                                                        {item.Pump} -{" "}
-                                                        {item.FuelGradeName}
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        {item.Price}
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        {item.Volume.toFixed(2)}
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        {item.OriginalAmount ||
-                                                            item.Amount}
-                                                    </td>
-                                                </tr>
-                                                {item.DiscountedAmount && (
-                                                    <tr>
-                                                        <td className="px-6 py-4 whitespace-nowrap">
-                                                            {item.PresetName}
+                                                    Nothing to show
+                                                </td>
+                                            </tr>
+                                        ) : (
+                                            formattedItems.map((item) => (
+                                                <React.Fragment
+                                                    key={item.Delivery_ID}
+                                                >
+                                                    <tr
+                                                        onClick={() =>
+                                                            handleRowClick(item)
+                                                        }
+                                                        className={`cursor-pointer ${
+                                                            selectedRowId ===
+                                                            item.Delivery_ID
+                                                                ? "bg-blue-100"
+                                                                : "hover:bg-gray-100"
+                                                        }`}
+                                                    >
+                                                        <td className="uppercase px-6 py-4 whitespace-nowrap">
+                                                            {item.Pump} -{" "}
+                                                            {item.FuelGradeName}
                                                         </td>
-                                                        <td></td>
-                                                        <td></td>
-                                                        <td>
-                                                            - (
-                                                            {
-                                                                item.DiscountedAmount
-                                                            }
-                                                            )
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            {item.Price}
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            {item.Volume.toFixed(
+                                                                2
+                                                            )}
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            {item.OriginalAmount ||
+                                                                item.Amount}
                                                         </td>
                                                     </tr>
-                                                )}
-                                            </React.Fragment>
-                                        ))
-                                    )}
-                                </tbody>
-                            </table>
+                                                    {item.DiscountedAmount && (
+                                                        <tr>
+                                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                                {
+                                                                    item.PresetName
+                                                                }
+                                                            </td>
+                                                            <td></td>
+                                                            <td></td>
+                                                            <td>
+                                                                (
+                                                                {
+                                                                    item.DiscountedAmount
+                                                                }
+                                                                )
+                                                            </td>
+                                                        </tr>
+                                                    )}
+                                                </React.Fragment>
+                                            ))
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                         {showSummary && (
                             <div className="mt-4">
@@ -139,17 +152,19 @@ const SaleWindowTabs = ({
                                                 ₱{subtotal}
                                             </td>
                                         </tr>
-                                        <tr>
-                                            <td className="px-6 py-4 whitespace-nowrap font-bold">
-                                                TOTAL DISCOUNT
-                                            </td>
-                                            <td
-                                                colSpan="5"
-                                                className="px-6 py-4 whitespace-nowrap text-right font-bold"
-                                            >
-                                                ₱{totalDiscount.toFixed(2)}
-                                            </td>
-                                        </tr>
+                                        {totalDiscount > 0 && (
+                                            <tr>
+                                                <td className="px-6 py-4 whitespace-nowrap font-bold">
+                                                    TOTAL DISCOUNT
+                                                </td>
+                                                <td
+                                                    colSpan="5"
+                                                    className="px-6 py-4 whitespace-nowrap text-right font-bold"
+                                                >
+                                                    ₱{totalDiscount.toFixed(2)}
+                                                </td>
+                                            </tr>
+                                        )}
                                         {transactionSummary.mopPayments.map(
                                             (payment, index) => (
                                                 <tr key={index}>

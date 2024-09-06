@@ -342,8 +342,8 @@ export default function Home() {
             inputValue.replace("₱", "").replace(",", "")
         );
         if (inputValue === "" || currentPayment <= 0) {
-            toast.error(
-                "Please enter an amount before selecting a method of payment."
+            toast.warning(
+                "Please enter an amount first."
             );
             return;
         }
@@ -745,7 +745,7 @@ export default function Home() {
                                 key="config"
                                 title={<p className="font-extrabold">CONFIG</p>}
                             >
-                                <Index />
+                                <Index onToast={handleToast} />
                             </Tab>
                         </Tabs>
                     </div>

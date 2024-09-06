@@ -1,9 +1,10 @@
-import React from "react";
+import axios from "axios";
 import { Card, useDisclosure } from "@nextui-org/react";
 import ElectricJournal from "./ElectricJournal";
 import AboutSoftware from "./AboutSoftware";
+import PriceChange from "./PriceChange";
 
-export default function Index() {
+export default function Index({ onToast }) {
     const {
         isOpen: isOpenElectricJournal,
         onOpen: onOpenElectricJournal,
@@ -14,6 +15,22 @@ export default function Index() {
         onOpen: onOpenAbout,
         onOpenChange: onOpenChangeAbout,
     } = useDisclosure();
+    const {
+        isOpen: isPriceChange,
+        onOpen: onOpenPriceChange,
+        onOpenChange: onOpenChangePriceChange,
+    } = useDisclosure();
+
+    const restartPumpServer = () => {
+        axios
+            .post("/restart-pts")
+            .then((response) => {
+                onToast("PTS server restarted", "success");
+            })
+            .catch((error) => {
+                onToast("Error", error.message);
+            });
+    };
 
     return (
         <>
@@ -26,10 +43,14 @@ export default function Index() {
                             </h1>
                         </div>
                     </Card>
-                    <Card className="col-span-12 sm:col-span-4 h-[200px]">
+                    <Card
+                        isPressable
+                        onPress={restartPumpServer}
+                        className="col-span-12 sm:col-span-4 h-[200px]"
+                    >
                         <div className="flex justify-center items-center h-full">
                             <h1 className="text-xl font-extrabold">
-                                RESTART PUMP SERVER
+                                RESTART PTS CONTROLLER
                             </h1>
                         </div>
                     </Card>
@@ -40,15 +61,32 @@ export default function Index() {
                             </h1>
                         </div>
                     </Card>
-                    <Card isPressable onPress={onOpenAbout} className="w-full h-[200px] col-span-12 sm:col-span-5">
+                    <Card
+                        isPressable
+                        onPress={onOpenAbout}
+                        className="col-span-12 sm:col-span-4 h-[200px]"
+                    >
                         <div className="flex justify-center items-center h-full">
-                            <h1 className="text-xl font-extrabold">ABOUT</h1>
+                            <h1 className="text-xl font-extrabold">
+                                ABOUT SOFTWARE
+                            </h1>
                         </div>
                     </Card>
-                    <Card isPressable onPress={onOpenElectricJournal} className="w-full h-[200px] col-span-12 sm:col-span-7">
+                    <Card
+                        isPressable
+                        onPress={onOpenElectricJournal}
+                        className="col-span-12 sm:col-span-4 h-[200px]"
+                    >
                         <div className="flex justify-center items-center h-full">
                             <h1 className="text-xl font-extrabold">
                                 ELECTRONIC JOURNAL
+                            </h1>
+                        </div>
+                    </Card>
+                    <Card isPressable onPress={onOpenPriceChange} className="col-span-12 sm:col-span-4 h-[200px]">
+                        <div className="flex justify-center items-center h-full">
+                            <h1 className="text-xl font-extrabold">
+                                PRICE CHANGE
                             </h1>
                         </div>
                     </Card>
@@ -61,6 +99,10 @@ export default function Index() {
             <AboutSoftware
                 isOpen={isOpenAbout}
                 onOpenChange={onOpenChangeAbout}
+            />
+            <PriceChange
+                isOpen={isPriceChange}
+                onOpenChange={onOpenChangePriceChange}
             />
         </>
     );

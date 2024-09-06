@@ -18,7 +18,7 @@ Route::get('/', function () {
     return Inertia::render('Auth/Login');
 })->name('login');
 
-Route::post('/login', [LoginController::class, 'login']);
+Route::post('/', [LoginController::class, 'login']);
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
 // Authenticated Routes
@@ -39,7 +39,8 @@ Route::middleware('auth:cashier')->group(function () {
     Route::get('/get-pump-nozzle', [PumpController::class, 'getNozzlesConfiguration']);
     Route::post('/stop-all-pumps', [PumpController::class, 'stopAllPumps']);
     Route::post('/authorize-all-pumps', [PumpController::class, 'authorizeAllPumps']);
-
+    Route::match(['get', 'post'], '/restart-pts', [PumpController::class, 'restartPTSController']);
+    
     // FinalisationController
     Route::get('/get-mop', [FinalisationController::class, 'getMOP'])->name('getMOP');
 
@@ -50,8 +51,10 @@ Route::middleware('auth:cashier')->group(function () {
     Route::post('/save-card-details', [TransactionController::class, 'saveCardDetails']);
 
     // GradeController
-    Route::post('/store-grades', [GradeController::class, 'getFuelGrades']);
-    Route::get('/get-grades', [GradeController::class, 'getFuelGrades']);
+    // Route::post('/store-grades', [GradeController::class, 'getFuelGrades']);
+    // Route::get('/get-grades', [GradeController::class, 'getFuelGrades']);
+
+    Route::get('/get-grades', [GradeController::class, 'getGrades']);
 
     // CashierController
     Route::get('/cashiers', [CashierController::class, 'getAllCashier']);

@@ -50,7 +50,6 @@ class Grade extends Model
 
     public function priceLevels()
     {
-        return $this->hasMany(PriceLevel::class, 'Grade_ID', 'Grade_ID');
+        return $this->hasMany(PriceLevel::class, 'Price_Profile_ID', 'Price_Profile_ID');
     }
 }
-

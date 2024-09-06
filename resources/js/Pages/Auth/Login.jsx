@@ -50,7 +50,7 @@ function Login() {
         setIsLoading(true);
 
         try {
-            await axios.post("/login", { Cashier_Number, Cashier_Psw });
+            await axios.post("/", { Cashier_Number, Cashier_Psw });
             toast.success("Login successful! Redirecting...");
             setTimeout(() => {
                 window.location.href = "/home";

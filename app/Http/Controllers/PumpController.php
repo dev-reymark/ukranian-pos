@@ -128,7 +128,6 @@ class PumpController extends Controller
 
                     // Close the transaction
                     $this->closeTransaction($pumpData['Pump'], $pumpData['Transaction']);
-                    
                 }
                 if (isset($packet['Data']['NozzleUp'])) {
                     $pumpId = $packet['Data']['Pump'];
@@ -500,5 +499,37 @@ class PumpController extends Controller
     {
         $pumpDeliveries = PumpDelivery::where('Pump', $pumpId)->get();
         return response()->json($pumpDeliveries);
+    }
+
+    public function restartPTSController(Request $request)
+    {
+        // Send the HTTP request to restart the PTS controller
+        $response = Http::withHeaders([
+            'Content-Type' => 'application/json',
+            'Authorization' => 'Basic ' . base64_encode('admin:admin')
+        ])->post('http://172.16.12.200/jsonPTS', [
+            'Protocol' => 'jsonPTS',
+            'Packets' => [
+                [
+                    'Id' => 1,
+                    'Type' => 'Restart'
+                ]
+            ]
+        ]);
+
+        // Check if the request was successful
+        if ($response->successful()) {
+            $data = $response->json();
+            return response()->json([
+                'message' => 'PTS controller restarted successfully',
+                'data' => $data
+            ]);
+        } else {
+            // Handle error response
+            return response()->json([
+                'error' => 'Failed to restart PTS controller',
+                'message' => $response->body()
+            ], $response->status());
+        }
     }
 }

@@ -20,7 +20,6 @@ import { CheckIcon } from "../Icon";
 import { IoCloseCircle } from "react-icons/io5";
 import { getPumpStatusColor } from "./PumpStatus";
 import axios from "axios";
-import toast from "react-hot-toast";
 import { GrClose } from "react-icons/gr";
 
 export const PumpCard = ({ pump, handleAppendDeliveryData, onToast }) => {

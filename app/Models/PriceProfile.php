@@ -18,6 +18,7 @@ class PriceProfile extends Model
         'Scheduled_ST',
         'Parent_Grade_ID',
         'Deleted',
+        'Grade_Price',
     ];
 
     public function grades()

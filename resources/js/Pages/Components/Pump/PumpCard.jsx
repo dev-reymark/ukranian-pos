@@ -17,10 +17,17 @@ import {
 } from "@nextui-org/react";
 import PumpDelivery from "./PumpDelivery";
 import { CheckIcon } from "../Icon";
-import { IoCloseCircle } from "react-icons/io5";
+import {
+    IoCloseCircle,
+    IoPauseCircle,
+    IoStopCircle,
+    IoPlayCircle,
+    IoStopCircleSharp,
+} from "react-icons/io5";
 import { getPumpStatusColor } from "./PumpStatus";
 import axios from "axios";
 import { GrClose } from "react-icons/gr";
+import { TbHandStop } from "react-icons/tb";
 
 export const PumpCard = ({ pump, handleAppendDeliveryData, onToast }) => {
     const showButtons =
@@ -272,40 +279,75 @@ export const PumpCard = ({ pump, handleAppendDeliveryData, onToast }) => {
                 }}
                 isOpen={showingPumpButtons}
                 onClose={() => setShowingPumpButtons(false)}
+                size="2xl"
+                className="bg-gray-200"
             >
                 <ModalContent>
                     <ModalHeader className="text-xl font-extrabold">
                         Pump ({pump.Id}) Controls{" "}
                     </ModalHeader>
+                    <Divider />
                     <ModalBody>
                         <div className="grid grid-cols-2 gap-4 p-4">
                             <Button
-                                size="lg"
-                                color="danger"
-                                onClick={() => stopPump(pump.Id)}
-                            >
-                                STOP
-                            </Button>
-                            <Button
+                                variant="shadow"
                                 size="lg"
                                 color="warning"
                                 onClick={() => suspendPump(pump.Id)}
+                                className="h-[100px]"
+                                startContent={
+                                    <IoPauseCircle className="w-10 h-10 text-default" />
+                                }
                             >
-                                SUSPEND
+                                <div className="flex justify-center items-center h-full">
+                                    <h1 className="text-xl font-extrabold">
+                                        SUSPEND
+                                    </h1>
+                                </div>
                             </Button>
                             <Button
                                 size="lg"
-                                color="primary"
+                                onClick={() => stopPump(pump.Id)}
+                                className="h-[100px] bg-red-600"
+                                startContent={
+                                    <IoStopCircle className="w-10 h-10 text-default" />
+                                }
+                            >
+                                <div className="flex justify-center items-center h-full">
+                                    <h1 className="text-xl font-extrabold">
+                                        STOP
+                                    </h1>
+                                </div>
+                            </Button>
+                            <Button
+                                size="lg"
+                                color="success"
                                 onClick={() => resumePump(pump.Id)}
+                                className="h-[100px]"
+                                startContent={
+                                    <IoPlayCircle className="w-10 h-10 text-default" />
+                                }
                             >
-                                RESUME
+                                <div className="flex justify-center items-center h-full">
+                                    <h1 className="text-xl font-extrabold">
+                                        RESUME
+                                    </h1>
+                                </div>
                             </Button>
+
                             <Button
                                 size="lg"
-                                className="bg-red-500"
+                                className="bg-red-400 h-[100px]"
                                 onClick={() => emergencyStopPump(pump.Id)}
+                                startContent={
+                                    <IoStopCircleSharp className="w-10 h-10 text-default" />
+                                }
                             >
-                                EMERGENCY STOP
+                                <div className="flex justify-center items-center h-full">
+                                    <h1 className="text-xl font-extrabold">
+                                        EMERGENCY STOP
+                                    </h1>
+                                </div>
                             </Button>
                         </div>
                     </ModalBody>

@@ -55,6 +55,7 @@ Route::middleware('auth:cashier')->group(function () {
     // Route::get('/get-grades', [GradeController::class, 'getFuelGrades']);
 
     Route::get('/get-grades', [GradeController::class, 'getGrades']);
+    Route::put('/update-price/{gradeId}', [GradeController::class, 'updatePrice']);
 
     // CashierController
     Route::get('/cashiers', [CashierController::class, 'getAllCashier']);

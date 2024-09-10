@@ -28,8 +28,8 @@ Route::middleware('auth:cashier')->group(function () {
     })->name('home');
 
     // PumpController
-    Route::get('/get-pump-status', [PumpController::class, 'getPumpStatus'])->name('getPumpStatus');
-    Route::post('/authorize-pump', [PumpController::class, 'authorizePump'])->name('authorizePump');
+    Route::get('/get-pump-status', [PumpController::class, 'getPumpStatus']);
+    Route::post('/authorize-pump', [PumpController::class, 'authorizePump']);
     Route::post('/stop-pump', [PumpController::class, 'stopPump']);
     Route::post('/emergency-stop', [PumpController::class, 'emergencyStopPump']);
     Route::post('/suspend', [PumpController::class, 'suspendPump']);
@@ -40,7 +40,9 @@ Route::middleware('auth:cashier')->group(function () {
     Route::post('/stop-all-pumps', [PumpController::class, 'stopAllPumps']);
     Route::post('/authorize-all-pumps', [PumpController::class, 'authorizeAllPumps']);
     Route::match(['get', 'post'], '/restart-pts', [PumpController::class, 'restartPTSController']);
-    
+    // Route::get('/get-users', [PumpController::class, 'getUserConfiguration']);
+    // Route::match(['get', 'post'], '/set-users', [PumpController::class, 'setUserConfiguration']);
+
     // FinalisationController
     Route::get('/get-mop', [FinalisationController::class, 'getMOP'])->name('getMOP');
 

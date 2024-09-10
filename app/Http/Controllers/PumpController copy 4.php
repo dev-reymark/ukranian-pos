@@ -9,86 +9,69 @@ use Illuminate\Support\Facades\Log;
 
 class PumpController extends Controller
 {
-    private function getApiUrl()
+    private $ptsApiUrl;
+
+    public function __construct()
     {
-        return config('services.pts_api.url');
+        $this->ptsApiUrl = env('PTS_API_URL');
     }
 
-    // public function getUserConfiguration()
-    // {
-    //     // Define the payload for getting user configuration
-    //     $payload = [
-    //         'Protocol' => 'jsonPTS',
-    //         'Packets' => [
-    //             [
-    //                 'Id' => 1,
-    //                 'Type' => 'GetUsersConfiguration'
-    //             ]
-    //         ]
-    //     ];
+    private function getBasicAuthHeader()
+    {
+        $username = env('PTS_API_USERNAME');
+        $password = env('PTS_API_PASSWORD');
+        return 'Basic ' . base64_encode("$username:$password");
+    }
 
-    //     // Send the HTTP request to get user configuration
-    //     $response = Http::withOptions([
-    //         'verify' => false,
-    //     ])->withHeaders([
-    //         'Content-Type' => 'application/json',
-    //         'Authorization' => 'Basic ' . base64_encode('admin:admin')
-    //     ])->post('http://172.16.12.201/jsonPTS', $payload);
+    public function getUserConfigurationData()
+{
+    $payload = [
+        'Users' => [
+            [
+                'Id' => 1,
+                'Login' => 'admin',
+                'Password' => 'admin',
+                'Permissions' => [
+                    'Configuration' => true,
+                    'Control' => true,
+                    'Monitoring' => true,
+                    'Reports' => true
+                ]
+            ]
+        ]
+    ];
 
-    //     // Check if the request was successful
-    //     if ($response->successful()) {
-    //         return response()->json($response->json());
-    //     } else {
-    //         // Handle error response
-    //         return response()->json([
-    //             'error' => 'Failed to get users configuration',
-    //             'message' => $response->body()
-    //         ], $response->status());
-    //     }
-    // }
-    // public function setUserConfiguration()
-    // {
-    //     $payload = [
-    //         'Users' => [
-    //             [
-    //                 'Id' => 1,
-    //                 'Login' => 'admin',
-    //                 'Password' => 'admin',
-    //                 'Permissions' => [
-    //                     'Configuration' => true,
-    //                     'Control' => true,
-    //                     'Monitoring' => true,
-    //                     'Reports' => true
-    //                 ]
-    //             ]
-    //         ]
-    //     ];
+    $response = Http::withOptions([
+        'verify' => false,
+        'Content-Type' => 'application/json',
+        'Authorization' => $this->getBasicAuthHeader()
+    ])->post($this->ptsApiUrl, [
+        'Protocol' => 'jsonPTS',
+        'Packets' => [
+            [
+                'Id' => 1,
+                'Type' => 'SetUsersConfiguration',
+                'Data' => $payload
+            ]
+        ]
+    ]);
 
-    //     $response = Http::withOptions([
-    //         'verify' => false,
-    //     ])->withHeaders([
-    //         'Content-Type' => 'application/json',
-    //         'Authorization' => 'Basic ' . base64_encode('admin:admin')
-    //     ])->post('http://172.16.12.201/jsonPTS', [
-    //         'Protocol' => 'jsonPTS',
-    //         'Packets' => [
-    //             [
-    //                 'Id' => 1,
-    //                 'Type' => 'SetUsersConfiguration',
-    //                 'Data' => $payload
-    //             ]
-    //         ]
-    //     ]);
+    if ($response->successful()) {
+        return response()->json($response->json());
+    } else {
+        Log::error('API Request Failed', [
+            'url' => $this->ptsApiUrl,
+            'status' => $response->status(),
+            'body' => $response->body()
+        ]);
 
-    //     if ($response->successful()) {
-    //         return response()->json($response->json());
-    //     } else {
-    //         return response()->json([
-    //             'error' => 'Failed to set users configuration',
-    //             'message' => $response->body()
-    //         ], $response->status());
-    //     }
-    // }
+        return response()->json([
+            'error' => 'Failed to set users configuration',
+            'message' => $response->body()
+        ], $response->status());
+    }
+}
+
     public function getPumpStatus(Request $request)
     {
         $pumpCount = 10;
@@ -106,12 +89,13 @@ class PumpController extends Controller
         }
 
         // Send the HTTP request
-        $response = Http::withHeaders([
+        $response = Http::withOptions([
+            'verify' => false,
             'Content-Type' => 'application/json',
-            'Authorization' => 'Basic ' . base64_encode('admin:admin')
-        ])->post($this->getApiUrl(), [
+            'Authorization' => $this->getBasicAuthHeader()
+        ])->post($this->ptsApiUrl, [
             'Protocol' => 'jsonPTS',
-            'Packets' => $packets
+            'Packets' => [$packets]
         ]);
 
         if ($response->successful()) {
@@ -197,7 +181,7 @@ class PumpController extends Controller
         $response = Http::withHeaders([
             'Content-Type' => 'application/json',
             'Authorization' => 'Basic ' . base64_encode('admin:admin')
-        ])->post($this->getApiUrl(), [
+        ])->post($this->ptsApiUrl, [
             'Protocol' => 'jsonPTS',
             'Packets' => [
                 [
@@ -209,7 +193,7 @@ class PumpController extends Controller
                     ]
                 ]
             ]
-        ], ['verify' => false]);
+        ]);
 
         if (!$response->successful()) {
             Log::error('Failed to close transaction for pump ' . $pumpId . ' and transaction ' . $transactionNumber);
@@ -222,7 +206,7 @@ class PumpController extends Controller
         $response = Http::withHeaders([
             'Content-Type' => 'application/json',
             'Authorization' => 'Basic ' . base64_encode('admin:admin')
-        ])->post($this->getApiUrl(), [
+        ])->post($this->ptsApiUrl, [
             'Protocol' => 'jsonPTS',
             'Packets' => [
                 [
@@ -230,7 +214,7 @@ class PumpController extends Controller
                     'Type' => 'GetFuelGradesConfiguration'
                 ]
             ]
-        ], ['verify' => false]);
+        ]);
 
         if ($response->successful()) {
             $data = $response->json();
@@ -245,7 +229,7 @@ class PumpController extends Controller
         $response = Http::withHeaders([
             'Content-Type' => 'application/json',
             'Authorization' => 'Basic ' . base64_encode('admin:admin')
-        ])->post($this->getApiUrl(), [
+        ])->post($this->ptsApiUrl, [
             'Protocol' => 'jsonPTS',
             'Packets' => [
                 [
@@ -253,7 +237,7 @@ class PumpController extends Controller
                     'Type' => 'GetPumpNozzlesConfiguration'
                 ]
             ]
-        ], ['verify' => false]);
+        ]);
 
         if ($response->successful()) {
             $data = $response->json();
@@ -288,7 +272,7 @@ class PumpController extends Controller
         $response = Http::withHeaders([
             'Content-Type' => 'application/json',
             'Authorization' => 'Basic ' . base64_encode('admin:admin')
-        ])->post($this->getApiUrl(), [
+        ])->post($this->ptsApiUrl, [
             'Protocol' => 'jsonPTS',
             'Packets' => [
                 [
@@ -341,7 +325,7 @@ class PumpController extends Controller
         $response = Http::withHeaders([
             'Content-Type' => 'application/json',
             'Authorization' => 'Basic ' . base64_encode('admin:admin')
-        ])->post($this->getApiUrl(), [
+        ])->post($this->ptsApiUrl, [
             'Protocol' => 'jsonPTS',
             'Packets' => $packets
         ]);
@@ -375,7 +359,7 @@ class PumpController extends Controller
         $response = Http::withHeaders([
             'Content-Type' => 'application/json',
             'Authorization' => 'Basic ' . base64_encode('admin:admin')
-        ])->post($this->getApiUrl(), [
+        ])->post($this->ptsApiUrl, [
             'Protocol' => 'jsonPTS',
             'Packets' => [$packet]
         ]);
@@ -410,7 +394,7 @@ class PumpController extends Controller
         $response = Http::withHeaders([
             'Content-Type' => 'application/json',
             'Authorization' => 'Basic ' . base64_encode('admin:admin')
-        ])->post($this->getApiUrl(), [
+        ])->post($this->ptsApiUrl, [
             'Protocol' => 'jsonPTS',
             'Packets' => $packets
         ]);
@@ -445,7 +429,7 @@ class PumpController extends Controller
         $response = Http::withHeaders([
             'Content-Type' => 'application/json',
             'Authorization' => 'Basic ' . base64_encode('admin:admin')
-        ])->post($this->getApiUrl(), [
+        ])->post($this->ptsApiUrl, [
             'Protocol' => 'jsonPTS',
             'Packets' => [$packet]
         ]);
@@ -480,7 +464,7 @@ class PumpController extends Controller
         $response = Http::withHeaders([
             'Content-Type' => 'application/json',
             'Authorization' => 'Basic ' . base64_encode('admin:admin')
-        ])->post($this->getApiUrl(), [
+        ])->post($this->ptsApiUrl, [
             'Protocol' => 'jsonPTS',
             'Packets' => [$packet]
         ]);
@@ -515,7 +499,7 @@ class PumpController extends Controller
         $response = Http::withHeaders([
             'Content-Type' => 'application/json',
             'Authorization' => 'Basic ' . base64_encode('admin:admin')
-        ])->post($this->getApiUrl(), [
+        ])->post($this->ptsApiUrl, [
             'Protocol' => 'jsonPTS',
             'Packets' => [$packet]
         ]);
@@ -546,7 +530,7 @@ class PumpController extends Controller
         $response = Http::withHeaders([
             'Content-Type' => 'application/json',
             'Authorization' => 'Basic ' . base64_encode('admin:admin')
-        ])->post($this->getApiUrl(), [
+        ])->post($this->ptsApiUrl, [
             'Protocol' => 'jsonPTS',
             'Packets' => [
                 [

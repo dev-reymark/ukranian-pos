@@ -295,9 +295,9 @@ export const PumpCard = ({ pump, handleAppendDeliveryData, onToast }) => {
                                 color="warning"
                                 onClick={() => suspendPump(pump.Id)}
                                 className="h-[100px]"
-                                startContent={
-                                    <IoPauseCircle className="w-10 h-10 text-default" />
-                                }
+                                // startContent={
+                                //     <IoPauseCircle className="w-10 h-10 text-default" />
+                                // }
                             >
                                 <div className="flex justify-center items-center h-full">
                                     <h1 className="text-xl font-extrabold">
@@ -309,9 +309,9 @@ export const PumpCard = ({ pump, handleAppendDeliveryData, onToast }) => {
                                 size="lg"
                                 onClick={() => stopPump(pump.Id)}
                                 className="h-[100px] bg-red-600"
-                                startContent={
-                                    <IoStopCircle className="w-10 h-10 text-default" />
-                                }
+                                // startContent={
+                                //     <IoStopCircle className="w-10 h-10 text-default" />
+                                // }
                             >
                                 <div className="flex justify-center items-center h-full">
                                     <h1 className="text-xl font-extrabold">
@@ -324,9 +324,9 @@ export const PumpCard = ({ pump, handleAppendDeliveryData, onToast }) => {
                                 color="success"
                                 onClick={() => resumePump(pump.Id)}
                                 className="h-[100px]"
-                                startContent={
-                                    <IoPlayCircle className="w-10 h-10 text-default" />
-                                }
+                                // startContent={
+                                //     <IoPlayCircle className="w-10 h-10 text-default" />
+                                // }
                             >
                                 <div className="flex justify-center items-center h-full">
                                     <h1 className="text-xl font-extrabold">
@@ -339,9 +339,9 @@ export const PumpCard = ({ pump, handleAppendDeliveryData, onToast }) => {
                                 size="lg"
                                 className="bg-red-400 h-[100px]"
                                 onClick={() => emergencyStopPump(pump.Id)}
-                                startContent={
-                                    <IoStopCircleSharp className="w-10 h-10 text-default" />
-                                }
+                                // startContent={
+                                //     <IoStopCircleSharp className="w-10 h-10 text-default" />
+                                // }
                             >
                                 <div className="flex justify-center items-center h-full">
                                     <h1 className="text-xl font-extrabold">

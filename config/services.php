@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'pts_api' => [
+        'url' => env('PTS_API_URL'),
+    ],
+
+
 ];

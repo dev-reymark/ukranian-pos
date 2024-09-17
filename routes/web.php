@@ -35,11 +35,12 @@ Route::middleware('auth:cashier')->group(function () {
     Route::post('/suspend', [PumpController::class, 'suspendPump']);
     Route::post('/resume', [PumpController::class, 'resumePump']);
     Route::get('/pump-deliveries/{pumpId}', [PumpController::class, 'getPumpDeliveries']);
-    Route::get('/get-fuel-grades', [PumpController::class, 'getFuelGradesConfiguration'])->name('fuel.grades');
-    Route::get('/get-pump-nozzle', [PumpController::class, 'getNozzlesConfiguration']);
     Route::post('/stop-all-pumps', [PumpController::class, 'stopAllPumps']);
     Route::post('/authorize-all-pumps', [PumpController::class, 'authorizeAllPumps']);
     Route::match(['get', 'post'], '/restart-pts', [PumpController::class, 'restartPTSController']);
+    Route::get('/get-pump-nozzle', [PumpController::class, 'getPumpNozzlesConfiguration']);
+    Route::post('/set-pump-nozzle', [PumpController::class, 'setPumpNozzlesConfiguration']);
+    Route::post('/set-fuel-grades', [PumpController::class, 'setFuelGradesConfiguration']);
     // Route::get('/get-users', [PumpController::class, 'getUserConfiguration']);
     // Route::match(['get', 'post'], '/set-users', [PumpController::class, 'setUserConfiguration']);
 
@@ -51,13 +52,13 @@ Route::middleware('auth:cashier')->group(function () {
     Route::get('/receipt/{transactionId}', [TransactionController::class, 'getReceipt']);
     Route::get('/print-receipt/{transactionId}', [TransactionController::class, 'printReceipt']);
     Route::post('/save-card-details', [TransactionController::class, 'saveCardDetails']);
-
+    
     // GradeController
     // Route::post('/store-grades', [GradeController::class, 'getFuelGrades']);
     // Route::get('/get-grades', [GradeController::class, 'getFuelGrades']);
 
-    Route::get('/get-grades', [GradeController::class, 'getGrades']);
-    Route::put('/update-price/{gradeId}', [GradeController::class, 'updatePrice']);
+    // Route::get('/get-grades', [GradeController::class, 'getGrades']);
+    // Route::put('/update-price/{gradeId}', [GradeController::class, 'updatePrice']);
 
     // CashierController
     Route::get('/cashiers', [CashierController::class, 'getAllCashier']);

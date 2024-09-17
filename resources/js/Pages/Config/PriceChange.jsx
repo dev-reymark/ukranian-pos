@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
+    DatePicker,
     Input,
     Modal,
     ModalBody,
@@ -11,28 +12,33 @@ import {
     CardHeader,
     CardBody,
     Divider,
-    DatePicker,
-    RadioGroup,
-    Radio,
+    CheckboxGroup,
+    Checkbox,
 } from "@nextui-org/react";
 import axios from "axios";
-import { now, getLocalTimeZone } from "@internationalized/date";
 import toast, { Toaster } from "react-hot-toast";
+import { now, getLocalTimeZone } from "@internationalized/date";
 
 function PriceChange({ isOpen, onOpenChange }) {
     const [grades, setGrades] = useState([]);
-    const [selectedGrade, setSelectedGrade] = useState(null);
-    const [currentPrice, setCurrentPrice] = useState("");
-    const [newPrice, setNewPrice] = useState("");
+    const [selectedGrades, setSelectedGrades] = useState([]);
+    const [prices, setPrices] = useState({});
+    const [newPrices, setNewPrices] = useState({});
     const [loading, setLoading] = useState(false);
     const [isPriceInvalid, setIsPriceInvalid] = useState(false);
 
     useEffect(() => {
         if (isOpen) {
             axios
-                .get("/get-grades")
+                .get("/get-pump-nozzle")
                 .then((response) => {
-                    setGrades(response.data);
+                    const data = response.data;
+                    setGrades(data.FuelGrades || []);
+                    const initialPrices = {};
+                    data.FuelGrades.forEach((grade) => {
+                        initialPrices[grade.Id] = grade.Price.toString();
+                    });
+                    setPrices(initialPrices);
                 })
                 .catch((error) => {
                     console.error("Error fetching grades:", error);
@@ -40,48 +46,77 @@ function PriceChange({ isOpen, onOpenChange }) {
         }
     }, [isOpen]);
 
-    const handleGradeSelect = (event) => {
-        const selectedValue = event.target.value;
-        console.log("Selected Grade ID:", selectedValue);
-        const grade = grades.find((g) => g.Grade_ID === selectedValue);
-        console.log("Selected Grade:", grade);
-        if (grade) {
-            console.log("Grade Price Profile:", grade.price_profile);
-            console.log("Grade Price:", grade.price_profile?.Grade_Price);
-            setSelectedGrade(grade);
-            setCurrentPrice(grade.price_profile?.Grade_Price || "0"); // Set current price
-        }
+    const handleGradeSelect = (values) => {
+        setSelectedGrades(values);
+    };
+
+    const handlePriceChange = (gradeId, value) => {
+        setNewPrices((prevPrices) => ({
+            ...prevPrices,
+            [gradeId]: value,
+        }));
     };
 
     const handlePriceUpdate = () => {
-        if (!selectedGrade) {
-            console.error("No grade selected");
+        if (selectedGrades.length === 0) {
+            console.error("No grades selected");
             return;
         }
 
-        if (!newPrice) {
+        const invalidPrices = selectedGrades.some((gradeId) => {
+            const price = newPrices[gradeId];
+            return !price || isNaN(parseFloat(price));
+        });
+
+        if (invalidPrices) {
             setIsPriceInvalid(true);
             return;
         }
 
-        setLoading(true); // Set loading to true before API request
+        setIsPriceInvalid(false);
 
+        const updatedGrades = grades.map((grade) =>
+            selectedGrades.includes(grade.Id.toString())
+                ? {
+                      ...grade,
+                      Price: parseFloat(
+                          newPrices[grade.Id] || prices[grade.Id]
+                      ),
+                  }
+                : grade
+        );
+
+        const updateRequest = {
+            Protocol: "jsonPTS",
+            Packets: [
+                {
+                    Id: 1,
+                    Type: "SetFuelGradesConfiguration",
+                    Data: {
+                        FuelGrades: updatedGrades,
+                    },
+                },
+            ],
+        };
+
+        setLoading(true);
         axios
-            .put(`/update-price/${selectedGrade.Grade_ID}`, {
-                newPrice: newPrice,
-            })
-            .then((response) => {
-                toast.success("Price updated successfully!");
-                console.log("Price updated successfully:", response.data);
-                setCurrentPrice(newPrice); // Update the current price to reflect the change
-                setNewPrice(""); // Reset new price field
+            .post("/set-fuel-grades", updateRequest)
+            .then(() => {
+                toast.success("Prices updated successfully!");
+
+                // Update prices with the new values
+                const updatedPrices = { ...prices, ...newPrices };
+                setPrices(updatedPrices);
+                setNewPrices({});
             })
             .catch((error) => {
-                console.error("Error updating price:", error);
+                console.error("Error updating prices:", error);
+                toast.error("Failed to update prices");
             })
             .finally(() => {
-                setLoading(false); // Reset loading state after request completes
-                setIsPriceInvalid(false); // Reset the validation state
+                setLoading(false);
+                setIsPriceInvalid(false);
             });
     };
 
@@ -104,6 +139,7 @@ function PriceChange({ isOpen, onOpenChange }) {
                                     PRICE CHANGE
                                 </h1>
                             </ModalHeader>
+
                             <ModalBody className="w-full mx-auto p-3">
                                 <DatePicker
                                     variant="faded"
@@ -117,7 +153,7 @@ function PriceChange({ isOpen, onOpenChange }) {
                                     }
                                     labelPlacement="outside-left"
                                     showMonthAndYearPickers
-                                    isDisabled
+                                    minValue={now()}
                                 />
                                 <div className="grid grid-cols-2 gap-2">
                                     <Card>
@@ -128,64 +164,100 @@ function PriceChange({ isOpen, onOpenChange }) {
                                         </CardHeader>
                                         <Divider />
                                         <CardBody className="p-4">
-                                            <RadioGroup
+                                            <CheckboxGroup
                                                 label="Select Grades"
                                                 onChange={handleGradeSelect}
                                             >
                                                 {grades.map((grade) => (
-                                                    <Radio
+                                                    <Checkbox
                                                         className="text-xl font-semibold"
                                                         size="lg"
-                                                        key={grade.Grade_ID}
-                                                        value={grade.Grade_ID}
+                                                        key={grade.Id}
+                                                        value={grade.Id.toString()}
                                                     >
-                                                        {grade.Grade_Name.trim()}
-                                                    </Radio>
+                                                        {grade.Name.trim()}
+                                                    </Checkbox>
                                                 ))}
-                                            </RadioGroup>
+                                            </CheckboxGroup>
                                         </CardBody>
                                     </Card>
-                                    <div className="grid grid-rows-2 gap-2">
-                                        <Card>
-                                            <CardHeader>
-                                                <h2 className="text-xl font-extrabold">
-                                                    Current Price
-                                                </h2>
-                                            </CardHeader>
-                                            <Divider />
-                                            <CardBody className="gap-2 p-2">
-                                                <Input
-                                                    variant="faded"
-                                                    label="CASH"
-                                                    value={currentPrice}
-                                                    isReadOnly
-                                                />
-                                            </CardBody>
-                                        </Card>
-                                        <Card>
-                                            <CardHeader>
-                                                <h2 className="text-xl font-extrabold">
-                                                    New Price
-                                                </h2>
-                                            </CardHeader>
-                                            <Divider />
-                                            <CardBody className="gap-2 p-2">
-                                                <Input
-                                                    label="CASH"
-                                                    value={newPrice}
-                                                    onChange={(e) =>
-                                                        setNewPrice(
-                                                            e.target.value
-                                                        )
+
+                                    <div className="flex flex-col h-full">
+                                        <div className="flex-1 overflow-auto space-y-4 p-2">
+                                            <div className="grid grid-cols-3 gap-2">
+                                                {selectedGrades.map(
+                                                    (gradeId) => {
+                                                        const grade =
+                                                            grades.find(
+                                                                (g) =>
+                                                                    g.Id.toString() ===
+                                                                    gradeId
+                                                            );
+                                                        return (
+                                                            <Card
+                                                                key={grade.Id}
+                                                            >
+                                                                <CardHeader>
+                                                                    <h2 className="text-xl font-extrabold">
+                                                                        {grade.Name.trim()}
+                                                                    </h2>
+                                                                </CardHeader>
+                                                                <Divider />
+                                                                <CardBody className="gap-1 p-2">
+                                                                    <Input
+                                                                        label="Current Price"
+                                                                        value={
+                                                                            prices[
+                                                                                grade
+                                                                                    .Id
+                                                                            ]
+                                                                        }
+                                                                        isReadOnly
+                                                                    />
+                                                                    <Input
+                                                                        label="New Price"
+                                                                        value={
+                                                                            newPrices[
+                                                                                grade
+                                                                                    .Id
+                                                                            ] ||
+                                                                            ""
+                                                                        }
+                                                                        onChange={(
+                                                                            e
+                                                                        ) =>
+                                                                            handlePriceChange(
+                                                                                grade.Id,
+                                                                                e
+                                                                                    .target
+                                                                                    .value
+                                                                            )
+                                                                        }
+                                                                        isRequired
+                                                                        isInvalid={
+                                                                            isPriceInvalid
+                                                                        }
+                                                                        errorMessage="Price not set"
+                                                                    />
+                                                                </CardBody>
+                                                            </Card>
+                                                        );
                                                     }
-                                                    isRequired
-                                                    isInvalid={isPriceInvalid}
-                                                    errorMessage="Price not set"
-                                                />
-                                            </CardBody>
-                                        </Card>
+                                                )}
+                                            </div>
+
+                                            {selectedGrades.length === 0 && (
+                                                <div className="text-center">
+                                                    <p className="text-xl font-bold text-red-600">
+                                                        No grades selected
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
+
                                         <Button
                                             color="primary"
+                                            fullWidth
                                             onClick={handlePriceUpdate}
                                             isLoading={loading}
                                             className="text-xl font-bold"

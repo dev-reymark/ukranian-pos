@@ -367,9 +367,111 @@ class PumpController extends Controller
         }
     }
 
+    public function setPumpPrices(Request $request)
+    {
+        // Validate incoming request data
+        $request->validate([
+            'Protocol' => 'required|string',
+            'Packets' => 'required|array',
+            'Packets.*.Id' => 'required|integer',
+            'Packets.*.Type' => 'required|string|in:PumpSetPrices',
+            'Packets.*.Data.Pump' => 'required|integer|between:1,50',
+            'Packets.*.Data.Prices' => 'required|array',
+            'Packets.*.Data.Prices.*' => 'required|numeric|min:0|max:999.999',
+        ]);
+
+        $data = $request->input('Packets');
+
+        // Create payload for SetPumpNozzlesConfiguration
+        $nozzlesConfigPayload = [
+            'Protocol' => 'jsonPTS',
+            'Packets' => [
+                [
+                    'Id' => 1,
+                    'Type' => 'SetPumpNozzlesConfiguration',
+                    'Data' => [
+                        'PumpNozzles' => $this->getNozzlesConfigurationData()  // Adjust as needed
+                    ]
+                ]
+            ]
+        ];
+
+        // Send SetPumpNozzlesConfiguration request
+        $nozzlesResponse = Http::withHeaders([
+            'Content-Type' => 'application/json',
+            'Authorization' => 'Basic ' . base64_encode('admin:admin')
+        ])->post($this->getApiUrl(), $nozzlesConfigPayload);
+
+        if (!$nozzlesResponse->successful()) {
+            Log::error('Failed to set pump nozzles configuration', [
+                'response' => $nozzlesResponse->body()
+            ]);
+            return response()->json([
+                'error' => 'Failed to set pump nozzles configuration',
+                'message' => $nozzlesResponse->body()
+            ], $nozzlesResponse->status());
+        }
+
+        // Now proceed with setting pump prices
+        foreach ($data as $packet) {
+            $pumpId = $packet['Data']['Pump'];
+            $prices = $packet['Data']['Prices'];
+
+            Log::info('Received PumpSetPrices data:', ['PumpId' => $pumpId, 'Prices' => $prices]);
+
+            $payload = [
+                'Protocol' => 'jsonPTS',
+                'Packets' => [
+                    [
+                        'Id' => 1,
+                        'Type' => 'PumpSetPrices',
+                        'Data' => [
+                            'Pump' => $pumpId,
+                            'Prices' => $prices
+                        ]
+                    ]
+                ]
+            ];
+
+            try {
+                $response = Http::withHeaders([
+                    'Content-Type' => 'application/json',
+                    'Authorization' => 'Basic ' . base64_encode('admin:admin')
+                ])->post($this->getApiUrl(), $payload);
+
+                if ($response->successful()) {
+                    return response()->json([
+                        'message' => 'Prices updated successfully',
+                        'data' => $response->json()
+                    ]);
+                } else {
+                    Log::error('Failed to update pump prices', [
+                        'response' => $response->body()
+                    ]);
+
+                    return response()->json([
+                        'error' => 'Failed to update pump prices',
+                        'message' => $response->body()
+                    ], $response->status());
+                }
+            } catch (\Exception $e) {
+                Log::error('Exception occurred while updating pump prices', [
+                    'exception' => $e->getMessage()
+                ]);
+
+                return response()->json([
+                    'error' => 'An unexpected error occurred',
+                    'message' => $e->getMessage()
+                ], 500);
+            }
+        }
+
+        return response()->json(['error' => 'Invalid packet type'], 422);
+    }
+
     public function setFuelGradesConfiguration(Request $request)
     {
-        Log::info('SetFuelGrades payload:', $request->all());
+        Log::info('SetFuelGradesConfiguration payload:', $request->all());
 
         // Validate incoming request data
         $validated = $request->validate([
@@ -427,304 +529,10 @@ class PumpController extends Controller
         }
     }
 
-    public function authorizePump(Request $request)
-    {
-        $validated = $request->validate([
-            'Pump' => 'required|integer|min:1|max:50',
-            'Nozzle' => 'nullable|integer|min:1|max:6',
-            'Nozzles' => 'nullable|array',
-            'FuelGradeId' => 'nullable|integer|min:1|max:10',
-            'FuelGradeIds' => 'nullable|array',
-            'Type' => 'required|string|in:Volume,Amount,FullTank',
-            'Dose' => 'nullable|numeric',
-            'Price' => 'nullable|numeric',
-            'Transaction' => 'nullable|integer|min:1|max:65535',
-            'AutoCloseTransaction' => 'nullable|boolean',
-        ]);
-
-        $response = Http::withHeaders([
-            'Content-Type' => 'application/json',
-            'Authorization' => 'Basic ' . base64_encode('admin:admin')
-        ])->post($this->getApiUrl(), [
-            'Protocol' => 'jsonPTS',
-            'Packets' => [
-                [
-                    'Id' => 1,
-                    'Type' => 'PumpAuthorize',
-                    'Data' => $validated
-                ]
-            ]
-        ]);
-
-        if ($response->successful()) {
-            $data = $response->json();
-            return response()->json($data);
-        } else {
-            return response()->json([
-                'error' => 'Failed to authorize pump',
-                'message' => $response->body()
-            ], $response->status());
-        }
-    }
-
-    public function authorizeAllPumps(Request $request)
-    {
-        $pumpCount = 20; // Number of pumps to authorize
-        $packets = [];
-
-        $validated = $request->validate([
-            'Nozzle' => 'nullable|integer|min:1|max:6',
-            'Nozzles' => 'nullable|array',
-            'FuelGradeId' => 'nullable|integer|min:1|max:10',
-            'FuelGradeIds' => 'nullable|array',
-            'Type' => 'required|string|in:Volume,Amount,FullTank',
-            'Dose' => 'nullable|numeric',
-            'Price' => 'nullable|numeric',
-            'Transaction' => 'nullable|integer|min:1|max:65535',
-            'AutoCloseTransaction' => 'nullable|boolean',
-        ]);
-
-        // Create packets for all pumps
-        for ($i = 1; $i <= $pumpCount; $i++) {
-            $packet = [
-                'Id' => $i,
-                'Type' => 'PumpAuthorize',
-                'Data' => array_merge(['Pump' => $i], $validated)
-            ];
-            $packets[] = $packet;
-        }
-
-        // Send the HTTP request
-        $response = Http::withHeaders([
-            'Content-Type' => 'application/json',
-            'Authorization' => 'Basic ' . base64_encode('admin:admin')
-        ])->post($this->getApiUrl(), [
-            'Protocol' => 'jsonPTS',
-            'Packets' => $packets
-        ]);
-
-        if ($response->successful()) {
-            $data = $response->json();
-            return response()->json($data);
-        } else {
-            return response()->json([
-                'error' => 'Failed to authorize all pumps',
-                'message' => $response->body()
-            ], $response->status());
-        }
-    }
-
-    public function stopPump(Request $request)
-    {
-        // Validate the request data
-        $validated = $request->validate([
-            'Pump' => 'required|integer|min:1|max:50',
-        ]);
-
-        // Create the packet for stopping the pump
-        $packet = [
-            'Id' => 1,
-            'Type' => 'PumpStop',
-            'Data' => $validated
-        ];
-
-        // Send the HTTP request
-        $response = Http::withHeaders([
-            'Content-Type' => 'application/json',
-            'Authorization' => 'Basic ' . base64_encode('admin:admin')
-        ])->post($this->getApiUrl(), [
-            'Protocol' => 'jsonPTS',
-            'Packets' => [$packet]
-        ]);
-
-        // Check if the request was successful
-        if ($response->successful()) {
-            $data = $response->json();
-            return response()->json($data);
-        } else {
-            // Handle error response
-            return response()->json([
-                'error' => 'Failed to stop pump',
-                'message' => $response->body()
-            ], $response->status());
-        }
-    }
-
-    public function stopAllPumps(Request $request)
-    {
-        $pumpCount = 20; // Number of pumps to stop
-        $packets = [];
-
-        for ($i = 1; $i <= $pumpCount; $i++) {
-            $packet = [
-                'Id' => $i,
-                'Type' => 'PumpStop',
-                'Data' => ['Pump' => $i]
-            ];
-            $packets[] = $packet;
-        }
-
-        $response = Http::withHeaders([
-            'Content-Type' => 'application/json',
-            'Authorization' => 'Basic ' . base64_encode('admin:admin')
-        ])->post($this->getApiUrl(), [
-            'Protocol' => 'jsonPTS',
-            'Packets' => $packets
-        ]);
-
-        if ($response->successful()) {
-            $data = $response->json();
-            return response()->json($data);
-        } else {
-            return response()->json([
-                'error' => 'Failed to stop all pumps',
-                'message' => $response->body()
-            ], $response->status());
-        }
-    }
-
-
-    public function emergencyStopPump(Request $request)
-    {
-        // Validate the request data
-        $validated = $request->validate([
-            'Pump' => 'required|integer|min:1|max:50',
-        ]);
-
-        // Create the packet for the emergency stop
-        $packet = [
-            'Id' => 1,
-            'Type' => 'PumpEmergencyStop',
-            'Data' => $validated
-        ];
-
-        // Send the HTTP request
-        $response = Http::withHeaders([
-            'Content-Type' => 'application/json',
-            'Authorization' => 'Basic ' . base64_encode('admin:admin')
-        ])->post($this->getApiUrl(), [
-            'Protocol' => 'jsonPTS',
-            'Packets' => [$packet]
-        ]);
-
-        // Check if the request was successful
-        if ($response->successful()) {
-            $data = $response->json();
-            return response()->json($data);
-        } else {
-            // Handle error response
-            return response()->json([
-                'error' => 'Failed to perform emergency stop',
-                'message' => $response->body()
-            ], $response->status());
-        }
-    }
-    public function suspendPump(Request $request)
-    {
-        // Validate the request data
-        $validated = $request->validate([
-            'Pump' => 'required|integer|min:1|max:50',
-        ]);
-
-        // Create the packet for suspending the pump
-        $packet = [
-            'Id' => 1,
-            'Type' => 'PumpSuspend',
-            'Data' => $validated
-        ];
-
-        // Send the HTTP request
-        $response = Http::withHeaders([
-            'Content-Type' => 'application/json',
-            'Authorization' => 'Basic ' . base64_encode('admin:admin')
-        ])->post($this->getApiUrl(), [
-            'Protocol' => 'jsonPTS',
-            'Packets' => [$packet]
-        ]);
-
-        // Check if the request was successful
-        if ($response->successful()) {
-            $data = $response->json();
-            return response()->json($data);
-        } else {
-            // Handle error response
-            return response()->json([
-                'error' => 'Failed to suspend pump',
-                'message' => $response->body()
-            ], $response->status());
-        }
-    }
-    public function resumePump(Request $request)
-    {
-        // Validate the request data
-        $validated = $request->validate([
-            'Pump' => 'required|integer|min:1|max:50',
-        ]);
-
-        // Create the packet for resuming the pump
-        $packet = [
-            'Id' => 1,
-            'Type' => 'PumpResume',
-            'Data' => $validated
-        ];
-
-        // Send the HTTP request
-        $response = Http::withHeaders([
-            'Content-Type' => 'application/json',
-            'Authorization' => 'Basic ' . base64_encode('admin:admin')
-        ])->post($this->getApiUrl(), [
-            'Protocol' => 'jsonPTS',
-            'Packets' => [$packet]
-        ]);
-
-        // Check if the request was successful
-        if ($response->successful()) {
-            $data = $response->json();
-            return response()->json($data);
-        } else {
-            // Handle error response
-            return response()->json([
-                'error' => 'Failed to resume pump',
-                'message' => $response->body()
-            ], $response->status());
-        }
-    }
 
     public function getPumpDeliveries($pumpId)
     {
         $pumpDeliveries = PumpDelivery::where('Pump', $pumpId)->get();
         return response()->json($pumpDeliveries);
-    }
-
-    public function restartPTSController(Request $request)
-    {
-        // Send the HTTP request to restart the PTS controller
-        $response = Http::withHeaders([
-            'Content-Type' => 'application/json',
-            'Authorization' => 'Basic ' . base64_encode('admin:admin')
-        ])->post($this->getApiUrl(), [
-            'Protocol' => 'jsonPTS',
-            'Packets' => [
-                [
-                    'Id' => 1,
-                    'Type' => 'Restart'
-                ]
-            ]
-        ]);
-
-        // Check if the request was successful
-        if ($response->successful()) {
-            $data = $response->json();
-            return response()->json([
-                'message' => 'PTS controller restarted successfully',
-                'data' => $data
-            ]);
-        } else {
-            // Handle error response
-            return response()->json([
-                'error' => 'Failed to restart PTS controller',
-                'message' => $response->body()
-            ], $response->status());
-        }
     }
 }

@@ -10,8 +10,6 @@ class GradeController extends Controller
 {
     public function getGrades()
     {
-        // Fetch all grades from the database
-        // $grades = Grade::all();
 
         // Fetch all grades with their related PriceProfile and PriceLevels
         $grades = Grade::with(['priceProfile'])->get();

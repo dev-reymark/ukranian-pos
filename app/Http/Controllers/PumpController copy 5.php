@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Grade;
-use App\Models\Hose;
 use App\Models\PriceProfile;
 use App\Models\PumpDelivery;
 use Illuminate\Http\Request;
@@ -16,6 +15,82 @@ class PumpController extends Controller
     {
         return config('services.pts_api.url');
     }
+
+    // public function getUserConfiguration()
+    // {
+    //     // Define the payload for getting user configuration
+    //     $payload = [
+    //         'Protocol' => 'jsonPTS',
+    //         'Packets' => [
+    //             [
+    //                 'Id' => 1,
+    //                 'Type' => 'GetUsersConfiguration'
+    //             ]
+    //         ]
+    //     ];
+
+    //     // Send the HTTP request to get user configuration
+    //     $response = Http::withOptions([
+    //         'verify' => false,
+    //     ])->withHeaders([
+    //         'Content-Type' => 'application/json',
+    //         'Authorization' => 'Basic ' . base64_encode('admin:admin')
+    //     ])->post('http://172.16.12.201/jsonPTS', $payload);
+
+    //     // Check if the request was successful
+    //     if ($response->successful()) {
+    //         return response()->json($response->json());
+    //     } else {
+    //         // Handle error response
+    //         return response()->json([
+    //             'error' => 'Failed to get users configuration',
+    //             'message' => $response->body()
+    //         ], $response->status());
+    //     }
+    // }
+    // public function setUserConfiguration()
+    // {
+    //     $payload = [
+    //         'Users' => [
+    //             [
+    //                 'Id' => 1,
+    //                 'Login' => 'admin',
+    //                 'Password' => 'admin',
+    //                 'Permissions' => [
+    //                     'Configuration' => true,
+    //                     'Control' => true,
+    //                     'Monitoring' => true,
+    //                     'Reports' => true
+    //                 ]
+    //             ]
+    //         ]
+    //     ];
+
+    //     $response = Http::withOptions([
+    //         'verify' => false,
+    //     ])->withHeaders([
+    //         'Content-Type' => 'application/json',
+    //         'Authorization' => 'Basic ' . base64_encode('admin:admin')
+    //     ])->post('http://172.16.12.201/jsonPTS', [
+    //         'Protocol' => 'jsonPTS',
+    //         'Packets' => [
+    //             [
+    //                 'Id' => 1,
+    //                 'Type' => 'SetUsersConfiguration',
+    //                 'Data' => $payload
+    //             ]
+    //         ]
+    //     ]);
+
+    //     if ($response->successful()) {
+    //         return response()->json($response->json());
+    //     } else {
+    //         return response()->json([
+    //             'error' => 'Failed to set users configuration',
+    //             'message' => $response->body()
+    //         ], $response->status());
+    //     }
+    // }
     public function getPumpStatus(Request $request)
     {
         $pumpCount = 10;
@@ -157,7 +232,7 @@ class PumpController extends Controller
                     'Type' => 'GetFuelGradesConfiguration'
                 ]
             ]
-        ]);
+        ], ['verify' => false]);
 
         if ($response->successful()) {
             $data = $response->json();
@@ -166,7 +241,6 @@ class PumpController extends Controller
 
         return [];
     }
-
 
     private function getNozzlesConfigurationData()
     {
@@ -181,7 +255,7 @@ class PumpController extends Controller
                     'Type' => 'GetPumpNozzlesConfiguration'
                 ]
             ]
-        ]);
+        ], ['verify' => false]);
 
         if ($response->successful()) {
             $data = $response->json();
@@ -198,14 +272,15 @@ class PumpController extends Controller
         return [];
     }
 
-    public function getPumpNozzlesConfiguration(Request $request)
+    public function getFuelGrades(Request $request)
     {
+        // Define the request packet
         $packet = [
             'Id' => 1,
-            'Type' => 'GetPumpNozzlesConfiguration'
+            'Type' => 'GetFuelGradesConfiguration'
         ];
 
-        // Fetch the pump nozzles configuration
+        // Send the HTTP request to the external API
         $response = Http::withHeaders([
             'Content-Type' => 'application/json',
             'Authorization' => 'Basic ' . base64_encode('admin:admin')
@@ -214,218 +289,128 @@ class PumpController extends Controller
             'Packets' => [$packet]
         ]);
 
+        // Check if the request was successful
         if ($response->successful()) {
             $data = $response->json();
-            $pumpNozzles = $data['Packets'][0]['Data']['PumpNozzles'] ?? [];
 
-            // Fetch the fuel grades
-            $fuelGrades = $this->getFuelGradesConfigurationData();
-            $fuelGradesMap = [];
+            // Assuming 'Packets' is an array and we're interested in the first packet's data
+            $fuelGrades = $data['Packets'][0]['Data']['FuelGrades'] ?? [];
 
+            // Iterate through each fuel grade and save or update the records
             foreach ($fuelGrades as $fuelGrade) {
-                $fuelGradesMap[$fuelGrade['Id']] = [
-                    'Name' => $fuelGrade['Name'],
-                    'Price' => $fuelGrade['Price'],
-                ];
+                // Update or create the grade record in the database
+                $grade = Grade::updateOrCreate(
+                    ['Grade_ID' => $fuelGrade['Id']],
+                    [
+                        'Grade_Name' => $fuelGrade['Name'],
+                        'Grade_Description' => $fuelGrade['Name'],
+                    ]
+                );
+
+                // Check if there's an associated PriceProfile and update or create it
+                $priceProfile = PriceProfile::updateOrCreate(
+                    ['Price_Profile_ID' => $fuelGrade['Id']], // You may need to adjust this depending on your data
+                    [
+                        'Price_Profile_Name' => $fuelGrade['Name'],
+                        'Grade_Price' => $fuelGrade['Price'],
+                        'Parent_Grade_ID' => $grade->Grade_ID, // Set the Grade_ID as Parent_Grade_ID
+                    ]
+                );
             }
 
-            // Prepare the response data
-            $responseData = [];
-
-            foreach ($pumpNozzles as $nozzle) {
-                $pumpId = $nozzle['PumpId'];
-                $nozzles = [];
-
-                foreach ($nozzle['FuelGradeIds'] as $index => $gradeId) {
-                    if ($gradeId !== 0) {
-                        // Fetch or create the grade record
-                        $grade = Grade::updateOrCreate(
-                            ['Grade_ID' => $gradeId],
-                            [
-                                'Grade_Name' => $fuelGradesMap[$gradeId]['Name'] ?? 'Unknown',
-                                'Grade_Description' => $fuelGradesMap[$gradeId]['Name'] ?? 'No description',
-                            ]
-                        );
-
-                        // Save or update the hose record
-                        Hose::updateOrCreate(
-                            [
-                                'Hose_ID' => $index + 1,
-                                'Pump_ID' => $pumpId,
-                                'Grade_ID' => $gradeId,
-                                'Tank_ID' => $nozzle['TankIds'][$index] ?? null
-                            ],
-                            [
-                                'Hose_number' => $index + 1,
-                                'Is_Enabled' => true,
-                            ]
-                        );
-
-                        // Ensure the price profile is updated
-                        PriceProfile::updateOrCreate(
-                            ['Price_Profile_ID' => $gradeId],
-                            [
-                                'Price_Profile_Name' => $fuelGradesMap[$gradeId]['Name'] ?? 'Unknown',
-                                'Grade_Price' => $fuelGradesMap[$gradeId]['Price'] ?? 0,
-                                'Parent_Grade_ID' => $gradeId,
-                            ]
-                        );
-
-                        // Add the nozzle information
-                        $nozzles[] = [
-                            'Hose_ID' => $index + 1,
-                            'Grade_ID' => $gradeId,
-                            'FuelGradeName' => $fuelGradesMap[$gradeId]['Name'] ?? 'Unknown',
-                            'FuelGradePrice' => $fuelGradesMap[$gradeId]['Price'] ?? 0,
-                            'Tank_ID' => $nozzle['TankIds'][$index] ?? null
-                        ];
-                    }
-                }
-
-                $responseData[] = [
-                    'PumpId' => $pumpId,
-                    'Nozzles' => $nozzles
-                ];
-            }
-
-            // Return the structured response
-            return response()->json([
-                'Pumps' => $responseData,
-                'FuelGrades' => $fuelGrades,
-            ]);
+            return response()->json($data);
         } else {
+            // Handle error response
             return response()->json([
-                'error' => 'Failed to fetch pump nozzles configuration',
+                'error' => 'Failed to retrieve fuel grades configuration',
                 'message' => $response->body()
             ], $response->status());
         }
     }
 
-    public function setPumpNozzlesConfiguration(Request $request)
+    public function setFuelGradesConfiguration(Request $request)
     {
-        Log::info('SetPumpNozzlesConfiguration payload:', $request->all());
-
-        // Validate incoming request data
+        // Validate the request data
         $validated = $request->validate([
-            'Protocol' => 'required|string',
-            'Packets' => 'required|array',
-            'Packets.*.Id' => 'required|integer',
-            'Packets.*.Type' => 'required|string',
-            'Packets.*.Data' => 'required|array',
-            'Packets.*.Data.PumpNozzles' => 'required|array',
-            'Packets.*.Data.PumpNozzles.*.PumpId' => 'required|integer',
-            'Packets.*.Data.PumpNozzles.*.FuelGradeIds' => 'required|array',
-            'Packets.*.Data.PumpNozzles.*.TankIds' => 'nullable|array',
+            'FuelGrades' => 'required|array',
+            'FuelGrades.*.Id' => 'required|integer|min:1|max:10',
+            'FuelGrades.*.Name' => 'required|string|max:20',
+            'FuelGrades.*.Price' => 'required|numeric|min:0',
+            'FuelGrades.*.ExpansionCoefficient' => 'nullable|numeric|between:0,0.99999',
         ]);
 
+        // Prepare the payload
         $payload = [
             'Protocol' => 'jsonPTS',
             'Packets' => [
                 [
                     'Id' => 1,
                     'Type' => 'SetFuelGradesConfiguration',
-                    'Data' => $request->input('FuelGrades')
+                    'Data' => [
+                        'FuelGrades' => $validated['FuelGrades']
+                    ]
                 ]
             ]
         ];
 
-        try {
-            // Send the HTTP request to set fuel grades configuration
-            $response = Http::withHeaders([
-                'Content-Type' => 'application/json',
-                'Authorization' => 'Basic ' . base64_encode('admin:admin')
-            ])->post($this->getApiUrl(), $payload);
+        // Send the HTTP request
+        $response = Http::withHeaders([
+            'Content-Type' => 'application/json',
+            'Authorization' => 'Basic ' . base64_encode('admin:admin')
+        ])->post($this->getApiUrl(), $payload);
 
-            // Check if the request was successful
-            if ($response->successful()) {
-                $data = $response->json();
-                return response()->json([
-                    'message' => 'Fuel grades configuration updated successfully',
-                    'data' => $data
-                ]);
-            } else {
-                // Log the error response
-                Log::error('Failed to update fuel grades configuration', [
-                    'response' => $response->body()
-                ]);
-
-                return response()->json([
-                    'error' => 'Failed to update fuel grades configuration',
-                    'message' => $response->body()
-                ], $response->status());
-            }
-        } catch (\Exception $e) {
-            // Log the exception
-            Log::error('Exception occurred while updating fuel grades configuration', [
-                'exception' => $e->getMessage()
-            ]);
-
+        // Check if the request was successful
+        if ($response->successful()) {
+            return response()->json($response->json());
+        } else {
             return response()->json([
-                'error' => 'An unexpected error occurred',
-                'message' => $e->getMessage()
-            ], 500);
+                'error' => 'Failed to set fuel grades configuration',
+                'message' => $response->body()
+            ], $response->status());
         }
     }
 
-    public function setFuelGradesConfiguration(Request $request)
-    {
-        Log::info('SetFuelGrades payload:', $request->all());
+    // app/Http/Controllers/PumpController.php
 
-        // Validate incoming request data
-        $validated = $request->validate([
-            'Protocol' => 'required|string',
-            'Packets' => 'required|array',
-            'Packets.*.Id' => 'required|integer',
-            'Packets.*.Type' => 'required|string|in:SetFuelGradesConfiguration',
-            'Packets.*.Data.FuelGrades' => 'required|array',
-            'Packets.*.Data.FuelGrades.*.Id' => 'required|integer|between:1,10',
-            'Packets.*.Data.FuelGrades.*.Name' => 'required|string|max:20',
-            'Packets.*.Data.FuelGrades.*.Price' => 'required|numeric|min:0|max:999999999',
-            'Packets.*.Data.FuelGrades.*.ExpansionCoefficient' => 'nullable|numeric|min:0|max:999.99999',
-        ]);
+public function setFuelGrades(Request $request)
+{
+    // Validate the incoming request data
+    $validated = $request->validate([
+        'FuelGrades' => 'required|array',
+        'FuelGrades.*.Id' => 'required|integer',
+        'FuelGrades.*.Name' => 'required|string|max:20',
+        'FuelGrades.*.Price' => 'required|numeric',
+        'FuelGrades.*.ExpansionCoefficient' => 'nullable|numeric',
+    ]);
 
-        $payload = [
-            'Protocol' => 'jsonPTS',
-            'Packets' => $request->input('Packets')
-        ];
+    $fuelGrades = $validated['FuelGrades'];
 
-        try {
-            // Send the HTTP request to set fuel grades configuration
-            $response = Http::withHeaders([
-                'Content-Type' => 'application/json',
-                'Authorization' => 'Basic ' . base64_encode('admin:admin')
-            ])->post($this->getApiUrl(), $payload);
+    foreach ($fuelGrades as $fuelGrade) {
+        // Update or create the grade record
+        $grade = Grade::updateOrCreate(
+            ['Grade_ID' => $fuelGrade['Id']],
+            [
+                'Grade_Name' => $fuelGrade['Name'],
+                'Grade_Description' => $fuelGrade['Name'],
+            ]
+        );
 
-            // Check if the request was successful
-            if ($response->successful()) {
-                $data = $response->json();
-                return response()->json([
-                    'message' => 'Fuel grades configuration updated successfully',
-                    'data' => $data
-                ]);
-            } else {
-                // Log the error response
-                Log::error('Failed to update fuel grades configuration', [
-                    'response' => $response->body()
-                ]);
-
-                return response()->json([
-                    'error' => 'Failed to update fuel grades configuration',
-                    'message' => $response->body()
-                ], $response->status());
-            }
-        } catch (\Exception $e) {
-            // Log the exception
-            Log::error('Exception occurred while updating fuel grades configuration', [
-                'exception' => $e->getMessage()
-            ]);
-
-            return response()->json([
-                'error' => 'An unexpected error occurred',
-                'message' => $e->getMessage()
-            ], 500);
-        }
+        // Update or create the price profile record
+        PriceProfile::updateOrCreate(
+            ['Price_Profile_ID' => $fuelGrade['Id']],
+            [
+                'Price_Profile_Name' => $fuelGrade['Name'],
+                'Grade_Price' => $fuelGrade['Price'],
+                'Expansion_Coefficient' => $fuelGrade['ExpansionCoefficient'] ?? 0,
+                'Parent_Grade_ID' => $grade->Grade_ID, // Set the Grade_ID as Parent_Grade_ID
+            ]
+        );
     }
+
+    // Send a success response
+    return response()->json(['message' => 'Fuel grades configuration updated successfully']);
+}
+
 
     public function authorizePump(Request $request)
     {
@@ -689,6 +674,7 @@ class PumpController extends Controller
             ], $response->status());
         }
     }
+
 
     public function getPumpDeliveries($pumpId)
     {

@@ -19,6 +19,7 @@ use Exception;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
 
 class TransactionController extends Controller
 {
@@ -155,6 +156,45 @@ class TransactionController extends Controller
         // Update Is_Sold to 1 for relevant PumpDeliveries
         PumpDelivery::whereIn('Delivery_ID', $deliveryIds)
             ->update(['Is_Sold' => 1]);
+
+        // Serialize the transaction object
+        // $transactionData = $transaction->toArray();
+
+        $transactionData = [
+            'SITETRANSACTIONS' => [
+                [
+                    'BRANCHID' => 1,
+                    'Transaction_ID' => $transaction->Transaction_ID,
+                    'Tax_Total' => $transaction->Tax_Total,
+                    'Sale_Total' => $transaction->Sale_Total,
+                    'POS_ID' => $transaction->POS_ID,
+                    'Transaction_Number' => $transaction->Transaction_Number,
+                    'Transaction_Date' => $transaction->Transaction_Date->toDateTimeString(),
+                    'Period_ID' => $transaction->Period_ID,
+                    'Cashier_ID' => $transaction->Cashier_ID,
+                    'BIR_Trans_Number' => $transaction->BIR_Trans_Number,
+
+                ]
+            ],
+            'Customer_Action' => 'insert'
+        ];
+
+        // Send the serialized transaction data to an external API
+        try {
+            $externalResponse = Http::post('http://172.16.12.111:8014/syncTransactions', [
+                'transaction' => $transactionData,
+            ]);
+
+            if ($externalResponse->failed()) {
+                Log::error('Failed to send transaction data to external API', [
+                    'response' => $externalResponse->body(),
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error('Exception occurred while sending transaction data to external API', [
+                'exception' => $e->getMessage(),
+            ]);
+        }
 
         return response()->json([
             'message' => 'Transaction saved successfully',

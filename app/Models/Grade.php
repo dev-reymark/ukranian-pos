@@ -48,8 +48,8 @@ class Grade extends Model
         return $this->belongsTo(PriceProfile::class, 'Price_Profile_ID', 'Price_Profile_ID');
     }
 
-    public function priceLevels()
-    {
-        return $this->hasMany(PriceLevel::class, 'Price_Profile_ID', 'Price_Profile_ID');
-    }
+    // public function priceLevels()
+    // {
+    //     return $this->hasMany(PriceLevel::class, 'Price_Profile_ID', 'Price_Profile_ID');
+    // }
 }

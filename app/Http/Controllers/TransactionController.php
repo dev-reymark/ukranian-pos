@@ -32,10 +32,10 @@ class TransactionController extends Controller
             'mopNames' => 'nullable|array',
             'mopPayments' => 'nullable|array',
             'taxTotal' => 'required|numeric',
-            'change' => 'required|numeric',
+            'change' => 'nullable|numeric',
             'subtotal' => 'required|numeric',
             'deliveryIds' => 'required|array',
-            'customer' => 'required|array',
+            'customer' => 'nullable|array',
             'cardDetails' => 'nullable|array',
         ]);
 
@@ -122,17 +122,19 @@ class TransactionController extends Controller
             ]);
             $itemNumber++;
         }
-        // Add `change'
-        TransactionItem::create([
-            'Transaction_ID' => $transaction->Transaction_ID,
-            'Item_Description' => 'Change',
-            'Item_Number' => $itemNumber,
-            'Item_Type' => 10, //Change
-            'Item_Price' => 0,
-            'Item_Quantity' => 0,
-            'Item_Value' => $validated['change'],
-        ]);
-        $itemNumber++;
+        // Add `change`, if it exists
+        if (isset($validated['change'])) {
+            TransactionItem::create([
+                'Transaction_ID' => $transaction->Transaction_ID,
+                'Item_Description' => 'Change',
+                'Item_Number' => $itemNumber,
+                'Item_Type' => 10, // Change
+                'Item_Price' => 0,
+                'Item_Quantity' => 0,
+                'Item_Value' => $validated['change'],
+            ]);
+            $itemNumber++;
+        }
 
         // Extract delivery IDs if they are nested objects
         $deliveryIds = array_map(function ($pump) {
@@ -146,7 +148,7 @@ class TransactionController extends Controller
 
             TransactionDetail::create([
                 'Transaction_ID' => $transaction->Transaction_ID,
-                'CardNumber' => $lastFourDigits,  // Save only the last four digits
+                'CardNumber' => $lastFourDigits,
                 'ApprovalCode' => $validated['cardDetails']['code'] ?? '',
                 'CustomerName' => $validated['cardDetails']['name'] ?? '',
                 'Type' => 1,

@@ -24,8 +24,8 @@ import { GetDateTime } from "./Components/GetDateTime";
 import { ThemeSwitcher } from "./Components/ThemeSwitcher";
 import Index from "./Config/Index";
 import { CardDetails } from "./Components/MOP/CardDetails";
-import SaleWindowTabs from "./Components/Sale/SaleWindowTabs";
-import ReportsIndex from "./Components/Reports/ReportsIndex";
+import {SaleWindowTabs} from "./Components/Sale/SaleWindowTabs";
+import ReportsIndex from "./Reports/ReportsIndex";
 import { GiGasPump } from "react-icons/gi";
 
 export default function Home() {

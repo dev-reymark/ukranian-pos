@@ -67,7 +67,6 @@ const MOPCard = ({ mopList, onSelectMOP, onApplyDiscount }) => {
         if (mop.MOP_Name === "Discounts") {
             setSelectedMOP(mop);
             setDiscountModalOpen(true);
-            // Fetch discounts when the Discounts modal opens
             fetchDiscounts();
         } else {
             setSelectedMOP(mop);
@@ -103,14 +102,16 @@ const MOPCard = ({ mopList, onSelectMOP, onApplyDiscount }) => {
     const handlePresetClick = (preset) => {
         if (selectedDiscount && onApplyDiscount) {
             console.log("Selected Discount:", selectedDiscount);
-            console.log("Selected Discount Type:", selectedDiscount.discount_type); // Correct access
+            console.log(
+                "Selected Discount Type:",
+                selectedDiscount.discount_type
+            );
             console.log("Selected Preset:", preset);
-            console.log("Preset Value:", preset.preset_value); // Correct access
+            console.log("Preset Value:", preset.preset_value);
             onApplyDiscount(selectedDiscount, preset);
         }
-        setDiscountModalOpen(false); // Close the modal after applying the discount
+        setDiscountModalOpen(false);
     };
-    
 
     return (
         <div className="relative">
@@ -122,7 +123,7 @@ const MOPCard = ({ mopList, onSelectMOP, onApplyDiscount }) => {
                             shadow="sm"
                             isPressable
                             onPress={() => handleOpenModal(mop)}
-                            className="p-2 h-[200px]"
+                            className="p-2 h-[150px]"
                         >
                             <div className="flex justify-center items-center h-full">
                                 <h1 className="text-xl font-extrabold">
@@ -134,7 +135,7 @@ const MOPCard = ({ mopList, onSelectMOP, onApplyDiscount }) => {
                     <Card
                         isPressable
                         onPress={() => setShowOtherMOPs(false)}
-                        className="fixed bottom-5 p-2 h-[200px]"
+                        className="fixed bottom-5 p-2 h-[150px] bg-default"
                     >
                         <div className="flex justify-center items-center h-full">
                             <h1 className="text-xl font-extrabold">
@@ -153,9 +154,9 @@ const MOPCard = ({ mopList, onSelectMOP, onApplyDiscount }) => {
                                     shadow="sm"
                                     isPressable
                                     onPress={() => handleMOPCardClick(mop)}
-                                    className="p-2 h-[200px]"
+                                    className="p-2 w-full h-[100px]"
                                 >
-                                    <div className="flex justify-center items-center h-full">
+                                    <div className="flex justify-center items-center text-center h-full">
                                         <h1 className="text-xl font-extrabold">
                                             {mop.MOP_Name.trim()}
                                         </h1>
@@ -172,7 +173,7 @@ const MOPCard = ({ mopList, onSelectMOP, onApplyDiscount }) => {
                     <Card
                         isPressable
                         onPress={handleOtherMOPClick}
-                        className="fixed bottom-5 p-2 h-[200px]"
+                        className="fixed bottom-5 p-2 h-[150px] bg-default"
                     >
                         <div className="flex justify-center items-center h-full">
                             <h1 className="text-xl font-extrabold">

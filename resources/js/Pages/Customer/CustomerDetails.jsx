@@ -10,17 +10,14 @@ export const CustomerDetails = ({
     customerTIN,
     customerBusinessStyle,
     onSave,
-    setCustomerName,
-    setCustomerAddress,
-    setCustomerTIN,
-    setCustomerBusinessStyle,
 }) => {
     const handleClear = () => {
-        setCustomerName("");
-        setCustomerAddress("");
-        setCustomerTIN("");
-        setCustomerBusinessStyle("");
+        onCustomerDataChange("name", "");
+        onCustomerDataChange("address", "");
+        onCustomerDataChange("tin", "");
+        onCustomerDataChange("businessStyle", "");
     };
+
     return (
         <Modal isOpen={isOpen} onOpenChange={onClose} placement="top-center">
             <ModalContent>
@@ -44,10 +41,7 @@ export const CustomerDetails = ({
                                 variant="bordered"
                                 value={customerAddress}
                                 onChange={(e) =>
-                                    onCustomerDataChange(
-                                        "address",
-                                        e.target.value
-                                    )
+                                    onCustomerDataChange("address", e.target.value)
                                 }
                             />
                             <Input
@@ -63,10 +57,7 @@ export const CustomerDetails = ({
                                 variant="bordered"
                                 value={customerBusinessStyle}
                                 onChange={(e) =>
-                                    onCustomerDataChange(
-                                        "businessStyle",
-                                        e.target.value
-                                    )
+                                    onCustomerDataChange("businessStyle", e.target.value)
                                 }
                             />
                         </ModalBody>
@@ -88,4 +79,3 @@ export const CustomerDetails = ({
         </Modal>
     );
 };
-

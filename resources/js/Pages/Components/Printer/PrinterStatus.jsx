@@ -40,13 +40,14 @@ export const PrinterStatus = () => {
     };
 
     return (
-        <Input
-            className="w-[25%]"
-            isReadOnly
-            label="Printer Status"
-            color={statusStyles(printerStatus)}
-            size="lg"
-            value={printerStatus + " " + printerError}
-        />
+        <div>
+            <Input
+                isReadOnly
+                label="Printer Status"
+                color={statusStyles(printerStatus)}
+                size="lg"
+                value={printerStatus + " " + printerError}
+            />
+        </div>
     );
 };

@@ -19,7 +19,7 @@ import Swal from "sweetalert2";
 import axios from "axios";
 import { FaGasPump } from "react-icons/fa";
 import toast, { Toaster } from "react-hot-toast";
-import SaleWindowTabs from "./Components/Sale/SaleWindowTabs";
+import { SaleWindowTabs } from "./Components/Sale/SaleWindowTabs";
 import MOPCard from "./Components/MOP/MOPCard";
 import POSKeyboard, { buttons } from "./Components/Sale/POSKeyboard";
 import { PumpCard } from "./Components/Pump/PumpCard";
@@ -590,7 +590,6 @@ export default function Home() {
     );
 }
 
-
 export const CardDetails = ({ isOpen, onOpenChange }) => {
     const [cardNumber, setCardNumber] = useState("");
     const [approvalCode, setApprovalCode] = useState("");
@@ -634,10 +633,7 @@ export const CardDetails = ({ isOpen, onOpenChange }) => {
                             />
                         </ModalBody>
                         <ModalFooter>
-                            <Button
-                                className="w-full"
-                                color="success"
-                            >
+                            <Button className="w-full" color="success">
                                 Save
                             </Button>
                             <Button

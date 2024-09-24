@@ -23,13 +23,14 @@ export const GetDateTime = () => {
     const currentDateTime = formatDateTime(now, serverTimeZone);
 
     return (
-        <Input
-            isReadOnly
-            color="default"
-            variant="flat"
-            label={`Server Time (${serverTimeZone})`}
-            value={currentDateTime}
-            className="w-[25%]"
-        />
+        <div>
+            <Input
+                isReadOnly
+                color="default"
+                variant="flat"
+                label={`Server Time (${serverTimeZone})`}
+                value={currentDateTime}
+            />
+        </div>
     );
 };

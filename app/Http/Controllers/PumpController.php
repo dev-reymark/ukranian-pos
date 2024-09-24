@@ -75,7 +75,6 @@ class PumpController extends Controller
                         }
                     }
 
-                    // Save pumpData to the database
                     Log::info('Saving Pump Data:', $pumpData);
 
                     // Save pumpData to the database
@@ -136,7 +135,7 @@ class PumpController extends Controller
                     ]
                 ]
             ]
-        ], ['verify' => false]);
+        ]);
 
         if (!$response->successful()) {
             Log::error('Failed to close transaction for pump ' . $pumpId . ' and transaction ' . $transactionNumber);
@@ -239,7 +238,7 @@ class PumpController extends Controller
                 foreach ($nozzle['FuelGradeIds'] as $index => $gradeId) {
                     if ($gradeId !== 0) {
                         // Fetch or create the grade record
-                        $grade = Grade::updateOrCreate(
+                        Grade::updateOrCreate(
                             ['Grade_ID' => $gradeId],
                             [
                                 'Grade_Name' => $fuelGradesMap[$gradeId]['Name'] ?? 'Unknown',
@@ -288,7 +287,6 @@ class PumpController extends Controller
                 ];
             }
 
-            // Return the structured response
             return response()->json([
                 'Pumps' => $responseData,
                 'FuelGrades' => $fuelGrades,
@@ -469,7 +467,7 @@ class PumpController extends Controller
 
     public function authorizeAllPumps(Request $request)
     {
-        $pumpCount = 20; // Number of pumps to authorize
+        $pumpCount = 32;
         $packets = [];
 
         $validated = $request->validate([
@@ -552,7 +550,7 @@ class PumpController extends Controller
 
     public function stopAllPumps(Request $request)
     {
-        $pumpCount = 20; // Number of pumps to stop
+        $pumpCount = 32;
         $packets = [];
 
         for ($i = 1; $i <= $pumpCount; $i++) {

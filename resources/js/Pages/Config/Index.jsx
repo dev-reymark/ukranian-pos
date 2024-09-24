@@ -4,6 +4,31 @@ import ElectricJournal from "./ElectricJournal";
 import AboutSoftware from "./AboutSoftware";
 import PriceChange from "./PriceChange";
 
+const actions = {
+    restartPTS: {
+        label: "Restart PTS Controller",
+        onPress: "restartPumpServer",
+    },
+    aboutSoftware: {
+        label: "About Software",
+        onPress: "onOpenAbout",
+    },
+    electricJournal: {
+        label: "Electronic Journal",
+        onPress: "onOpenElectricJournal",
+    },
+    priceChange: {
+        label: "Price Change",
+        onPress: "onOpenPriceChange",
+    },
+    managerView: {
+        label: "Manager's View",
+    },
+    posConfig: {
+        label: "POS Config",
+    },
+};
+
 export default function Index({ onToast }) {
     const {
         isOpen: isOpenElectricJournal,
@@ -16,7 +41,7 @@ export default function Index({ onToast }) {
         onOpenChange: onOpenChangeAbout,
     } = useDisclosure();
     const {
-        isOpen: isPriceChange,
+        isOpen: isOpenPriceChange,
         onOpen: onOpenPriceChange,
         onOpenChange: onOpenChangePriceChange,
     } = useDisclosure();
@@ -24,7 +49,7 @@ export default function Index({ onToast }) {
     const restartPumpServer = () => {
         axios
             .post("/restart-pts")
-            .then((response) => {
+            .then(() => {
                 onToast("PTS server restarted", "success");
             })
             .catch((error) => {
@@ -32,64 +57,36 @@ export default function Index({ onToast }) {
             });
     };
 
+    const actionHandlers = {
+        restartPumpServer,
+        onOpenAbout,
+        onOpenElectricJournal,
+        onOpenPriceChange,
+    };
+
+    const ActionCard = ({ label, onPress }) => (
+        <Card
+            isPressable={!!onPress}
+            onPress={onPress ? actionHandlers[onPress] : null}
+            className="p-2 h-[150px]"
+        >
+            <div className="flex justify-center items-center h-full">
+                <h1 className="text-xl font-extrabold">{label}</h1>
+            </div>
+        </Card>
+    );
+
     return (
         <>
             <section>
-                <div className="w-full h-full mx-auto gap-2 grid grid-cols-12 grid-rows-2">
-                    <Card className="col-span-12 sm:col-span-4 h-[200px]">
-                        <div className="flex justify-center items-center h-full">
-                            <h1 className="text-xl font-extrabold">
-                                MANAGER'S VIEW
-                            </h1>
-                        </div>
-                    </Card>
-                    <Card
-                        isPressable
-                        onPress={restartPumpServer}
-                        className="col-span-12 sm:col-span-4 h-[200px]"
-                    >
-                        <div className="flex justify-center items-center h-full">
-                            <h1 className="text-xl font-extrabold">
-                                RESTART PTS CONTROLLER
-                            </h1>
-                        </div>
-                    </Card>
-                    <Card className="col-span-12 sm:col-span-4 h-[200px]">
-                        <div className="flex justify-center items-center h-full">
-                            <h1 className="text-xl font-extrabold">
-                                POS CONFIG
-                            </h1>
-                        </div>
-                    </Card>
-                    <Card
-                        isPressable
-                        onPress={onOpenAbout}
-                        className="col-span-12 sm:col-span-4 h-[200px]"
-                    >
-                        <div className="flex justify-center items-center h-full">
-                            <h1 className="text-xl font-extrabold">
-                                ABOUT SOFTWARE
-                            </h1>
-                        </div>
-                    </Card>
-                    <Card
-                        isPressable
-                        onPress={onOpenElectricJournal}
-                        className="col-span-12 sm:col-span-4 h-[200px]"
-                    >
-                        <div className="flex justify-center items-center h-full">
-                            <h1 className="text-xl font-extrabold">
-                                ELECTRONIC JOURNAL
-                            </h1>
-                        </div>
-                    </Card>
-                    <Card isPressable onPress={onOpenPriceChange} className="col-span-12 sm:col-span-4 h-[200px]">
-                        <div className="flex justify-center items-center h-full">
-                            <h1 className="text-xl font-extrabold">
-                                PRICE CHANGE
-                            </h1>
-                        </div>
-                    </Card>
+                <div className="w-full h-full mx-auto gap-2 grid grid-cols-3">
+                    {Object.keys(actions).map((key) => (
+                        <ActionCard
+                            key={key}
+                            label={actions[key].label}
+                            onPress={actions[key].onPress}
+                        />
+                    ))}
                 </div>
             </section>
             <ElectricJournal
@@ -101,7 +98,7 @@ export default function Index({ onToast }) {
                 onOpenChange={onOpenChangeAbout}
             />
             <PriceChange
-                isOpen={isPriceChange}
+                isOpen={isOpenPriceChange}
                 onOpenChange={onOpenChangePriceChange}
             />
         </>

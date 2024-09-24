@@ -21,9 +21,9 @@ createInertiaApp({
 
         root.render(
             <NextUIProvider>
-                {/* <ScreenSizeWrapper> */}
+                <ScreenSizeWrapper>
                     <App {...props} />
-                {/* </ScreenSizeWrapper> */}
+                </ScreenSizeWrapper>
             </NextUIProvider>
         );
     },

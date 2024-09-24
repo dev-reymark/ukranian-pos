@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, Suspense } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Head } from "@inertiajs/react";
 import {
     Card,
@@ -9,7 +9,6 @@ import {
     Spacer,
     Input,
 } from "@nextui-org/react";
-import Swal from "sweetalert2";
 import axios from "axios";
 import { ToastContainer, Zoom, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -23,16 +22,14 @@ import { GetDateTime } from "./Components/GetDateTime";
 import { ThemeSwitcher } from "./Components/ThemeSwitcher";
 import Index from "./Config/Index";
 import { CardDetails } from "./Components/MOP/CardDetails";
-import SaleWindowTabs from "./Components/Sale/SaleWindowTabs";
-import ReportsIndex from "./Components/Reports/ReportsIndex";
+import { SaleWindowTabs } from "./Components/Sale/SaleWindowTabs";
+import ReportsIndex from "./Reports/ReportsIndex";
 import { GiGasPump } from "react-icons/gi";
 
 export default function Home() {
-    const [data, setData] = useState([]);
     const [inputValue, setInputValue] = useState("");
     const [pumpStatus, setPumpStatus] = useState([]);
     const [mopList, setMopList] = useState([]);
-    const [isCardDetailsOpen, setCardDetailsOpen] = useState(false);
     const [deliveryData, setDeliveryData] = useState(() => {
         const savedData = localStorage.getItem("deliveryData");
         return savedData ? JSON.parse(savedData) : [];
@@ -46,40 +43,18 @@ export default function Home() {
     const [transactionSaved, setTransactionSaved] = useState(false);
     const [remainingBalance, setRemainingBalance] = useState(0);
     const [isCustomerModalOpen, setCustomerModalOpen] = useState(false);
-    const [customerName, setCustomerName] = useState("");
-    const [customerAddress, setCustomerAddress] = useState("");
-    const [customerTIN, setCustomerTIN] = useState("");
-    const [customerBusinessStyle, setCustomerBusinessStyle] = useState("");
-
-    // Card Details States
-    const [cardNumber, setCardNumber] = useState("");
-    const [approvalCode, setApprovalCode] = useState("");
-    const [cardHolderName, setCardHolderName] = useState("");
-
-    const handleLogout = async () => {
-        const result = await Swal.fire({
-            title: "Are you sure?",
-            text: "You are about to log out and you won't be able to recover this session!",
-            icon: "warning",
-            showCancelButton: true,
-            confirmButtonColor: "#3085d6",
-            cancelButtonColor: "#d33",
-            confirmButtonText: "Yes, log out!",
-        });
-
-        if (result.isConfirmed) {
-            try {
-                await axios.post("/logout");
-                window.location.href = "/";
-            } catch (error) {
-                console.error("Error logging out:", error);
-            }
-        }
-    };
-
-    const handleOpenCustomerDetails = () => {
-        setCustomerModalOpen(true);
-    };
+    const [cardDetails, setCardDetails] = useState({
+        cardNumber: "",
+        approvalCode: "",
+        cardHolderName: "",
+    });
+    const [isCardDetailsOpen, setCardDetailsOpen] = useState(false);
+    const [customerData, setCustomerData] = useState({
+        name: "",
+        address: "",
+        tin: "",
+        businessStyle: "",
+    });
 
     const handleCloseCustomerDetails = () => {
         setCustomerModalOpen(false);
@@ -89,111 +64,37 @@ export default function Home() {
         handleCloseCustomerDetails();
     };
 
+    const handleCustomerDataChange = (key, value) => {
+        setCustomerData((prev) => ({ ...prev, [key]: value }));
+    };
+
     const handleAppendDeliveryData = (pump) => {
         setDeliveryData((prevData) => {
             const updatedData = [...prevData, pump];
-            // Save updated data to localStorage
             localStorage.setItem("deliveryData", JSON.stringify(updatedData));
             return updatedData;
         });
     };
 
-    const handleClear = () => {
-        setInputValue("");
-    };
-
     const handleToast = (message, type) => {
         if (type === "success") {
             toast.success(message);
+        } else if (type === "warning") {
+            toast.warning(message);
         } else if (type === "error") {
             toast.error(message);
+        } else if (type === "info") {
+            toast.info(message);
         }
     };
 
-    const handleSubTotal = () => {
-        setInputValue(`Subtotal: ₱${subtotal}`);
-    };
-
-    const handleVoidAll = () => {
-        if (deliveryData.length === 0) {
-            toast.error("No items to void");
-            return;
-        }
-        setDeliveryData([]);
-        setTimeout(() => {
-            console.log("DeliveryData after reset:", deliveryData); // Check if it’s empty
-        }, 0);
-        localStorage.removeItem("transaction");
-        localStorage.removeItem("deliveryData");
-        localStorage.removeItem("disabledIds");
-        toast.success("All items voided");
-
-        setTransactionSaved(false);
-        setTransactionSummary({ mopPayments: [], change: 0 });
-
-        // Reset change
-        setTotalPaid(0);
-
-        setInputValue("");
-
-        // Dispatch a custom event to notify PumpDelivery
-        window.dispatchEvent(new Event("disabledIdsUpdated"));
-    };
-
-    const handleVoid = () => {
-        console.log("Selected Row:", selectedRow);
-        if (selectedRow !== null) {
-            const updatedData = deliveryData.filter(
-                (item) => item.Delivery_ID !== selectedRow
-            );
-            setDeliveryData(updatedData);
-            localStorage.setItem("deliveryData", JSON.stringify(updatedData));
-            toast.success("Item voided");
-            setSelectedRow(null);
-
-            // Recompute subtotal based on remaining items
-            const newSubtotal = updatedData
-                .reduce(
-                    (total, item) => total + parseFloat(item.Amount || 0),
-                    0
-                )
-                .toFixed(2);
-
-            // Recompute change based on the new subtotal
-            const newChange = Math.max(0, totalPaid - newSubtotal).toFixed(2);
-
-            // Update state with the new change value
-            setTotalPaid(totalPaid); // Retain the totalPaid amount
-            setInputValue(newChange);
-
-            // Retrieve disabledIds from localStorage
-            const savedDisabledIds = localStorage.getItem("disabledIds");
-            if (savedDisabledIds) {
-                const disabledIds = new Set(JSON.parse(savedDisabledIds));
-                // Remove the specific Delivery_ID
-                disabledIds.delete(selectedRow);
-                // Save updated disabledIds to localStorage
-                localStorage.setItem(
-                    "disabledIds",
-                    JSON.stringify(Array.from(disabledIds))
-                );
-
-                // Dispatch a custom event to notify PumpDelivery
-                window.dispatchEvent(new Event("disabledIdsUpdated"));
-            }
-        } else {
-            toast.error("No item to void");
-        }
-    };
     // Handle user interaction to enable sound playback
     const handleUserInteraction = () => {
         setUserInteracted(true);
-        // Remove the event listener after the first interaction
         window.removeEventListener("click", handleUserInteraction);
     };
 
     useEffect(() => {
-        // Add event listener to track user interaction
         window.addEventListener("click", handleUserInteraction);
 
         const fetchPumpStatus = () => {
@@ -241,9 +142,6 @@ export default function Home() {
                 .get("/get-mop")
                 .then((response) => {
                     setMopList(response.data.data);
-                    // Check if any MOP has MOP_Ref of 3 and open the CardDetails modal
-                    const hasRef3 = data.some((mop) => mop.MOP_Ref === "3");
-                    setCardDetailsOpen(hasRef3);
                 })
                 .catch((error) => {
                     console.error("Error fetching MOP list:", error);
@@ -257,94 +155,14 @@ export default function Home() {
         return () => clearInterval(interval);
     }, [soundPlaying, userInteracted]);
 
-    const handleButtonClick = (value) => {
-        setInputValue((prev) => prev + value);
-        setTotalPaid((prev) => prev + value);
-    };
-
-    const handleStopAllPumps = async () => {
-        try {
-            // Send request to stop all pumps
-            const response = await axios.post("/stop-all-pumps");
-            toast.success("All pumps stopped");
-            console.log("All pumps stopped:", response.data);
-
-            // Update state if needed or perform additional actions
-        } catch (error) {
-            toast.error("Error stopping all pumps");
-            console.error("Error stopping all pumps:", error);
-        }
-    };
-
-    const handleAuthorizeAllPumps = async () => {
-        try {
-            const payload = {
-                Type: "FullTank",
-            };
-            // Send request to authorize all pumps
-            const response = await axios.post("/authorize-all-pumps", payload);
-            toast.success("All pumps authorized");
-            console.log("All pumps authorized:", response.data);
-        } catch (error) {
-            toast.error("Error authorizing all pumps");
-            console.error("Error authorizing all pumps:", error);
-        }
-    };
-
-    const handlePrintReceipt = async (transactionId) => {
-        if (!transactionId) {
-            toast.error("Transaction ID is undefined");
-            return;
-        }
-
-        try {
-            const response = await axios.get(`/print-receipt/${transactionId}`);
-            const receiptData = response.data;
-        } catch (error) {
-            toast.error("Error fetching receipt data");
-            console.error("Error fetching receipt data:", error);
-        }
-    };
-
-    const handleOpenDrawer = async () => {
-        try {
-            const response = await axios.get("/open-cash-drawer");
-            toast.success("Drawer opened");
-            console.log("Drawer opened:", response.data);
-        } catch (error) {
-            toast.error("Error opening drawer");
-            console.error(
-                "Error opening drawer:",
-                error.response ? error.response.data : error.message
-            );
-        }
-    };
-
-    const buttonClickHandlers = {
-        handleLogout,
-        handleVoid,
-        handleVoidAll,
-        setInputValue,
-        handleClear,
-        handleSubTotal,
-        handlePrintReceipt,
-        handleStopAllPumps,
-        handleAuthorizeAllPumps,
-        handleOpenCustomerDetails,
-        handleOpenDrawer,
-    };
-
     // Handle MOP selection
     const handleSelectMOP = async (mop) => {
-        console.log("MOP selected:", mop);
-
         const currentPayment = parseFloat(
             inputValue.replace("₱", "").replace(",", "")
         );
+
         if (inputValue === "" || currentPayment <= 0) {
-            toast.warning(
-                "Please enter an amount first."
-            );
+            toast.warning("Please enter amount to pay");
             return;
         }
 
@@ -359,21 +177,24 @@ export default function Home() {
         const newRemainingBalance =
             existingTransaction.remainingBalance - currentPayment;
 
+        existingTransaction.payments.push({
+            mopName: mop.MOP_Name,
+            amount: currentPayment,
+        });
+        existingTransaction.remainingBalance = newRemainingBalance;
+
+        localStorage.setItem(
+            "transaction",
+            JSON.stringify(existingTransaction)
+        );
+
+        if (mop.MOP_Ref === "3") {
+            setCardDetailsOpen(true);
+            return;
+        }
+
         if (newRemainingBalance >= 0) {
-            existingTransaction.payments.push({
-                mopName: mop.MOP_Name,
-                amount: currentPayment,
-            });
-            existingTransaction.remainingBalance = newRemainingBalance;
-
-            localStorage.setItem(
-                "transaction",
-                JSON.stringify(existingTransaction)
-            );
-
-            if (mop.MOP_Ref === "3") {
-                setCardDetailsOpen(true); // Open Card Details Modal
-            } else if (newRemainingBalance === 0) {
+            if (newRemainingBalance === 0) {
                 await saveTransaction();
             } else {
                 setInputValue(`Amount Due: ₱${newRemainingBalance.toFixed(2)}`);
@@ -381,25 +202,16 @@ export default function Home() {
         } else {
             const newChange = Math.abs(newRemainingBalance).toFixed(2);
             toast.success(`Change: ₱${newChange}`);
+            setInputValue(`Change: ₱${newChange}`);
 
-            existingTransaction.payments.push({
-                mopName: mop.MOP_Name,
-                amount: currentPayment,
-            });
+            // Since the payment is more than the total, we save the transaction
             existingTransaction.remainingBalance = 0;
-
             localStorage.setItem(
                 "transaction",
                 JSON.stringify(existingTransaction)
             );
-            setInputValue(`Change: ₱${newChange}`);
-            setInputValue(`Change: ₱${newChange}`);
 
-            if (mop.MOP_Ref === "3") {
-                setCardDetailsOpen(true); // Open Card Details Modal
-            } else {
-                await saveTransaction();
-            }
+            await saveTransaction();
         }
     };
 
@@ -421,7 +233,6 @@ export default function Home() {
             return;
         }
 
-        // Check if discount_id is 1 to 4
         if (
             selectedDiscount.discount_id >= 1 &&
             selectedDiscount.discount_id <= 4
@@ -430,24 +241,14 @@ export default function Home() {
             return;
         }
 
-        console.log("Selected Row:", selectedRow);
-        console.log("Selected Discount:", selectedDiscount);
-        console.log("Selected Preset:", preset);
-
         const updatedData = deliveryData.map((item) => {
             if (item.Delivery_ID === selectedRow) {
                 // Check if item already has a discount
                 if (item.DiscountedAmount) {
                     toast.info("Discount already applied to this item.");
-                    return item; // No changes if discount already applied
+                    return item;
                 }
                 let discountAmount = 0;
-
-                console.log(
-                    "Selected Discount Type:",
-                    selectedDiscount?.discount_type
-                );
-                console.log("Preset Value:", preset?.preset_value);
 
                 switch (selectedDiscount?.discount_type) {
                     case "1": // Percentage
@@ -467,8 +268,6 @@ export default function Home() {
                     default:
                         break;
                 }
-
-                console.log("Calculated Discount Amount:", discountAmount);
 
                 const discountedAmount =
                     parseFloat(item.Amount) - discountAmount;
@@ -502,7 +301,7 @@ export default function Home() {
         if (selectedMOP && selectedMOP.MOP_Ref === "3") {
             if (!cardNumber || !approvalCode || !cardHolderName) {
                 toast.error("Please provide complete card details.");
-                setCardDetailsOpen(true); // Re-open Card Details Modal
+                setCardDetailsOpen(true);
                 return;
             }
         }
@@ -520,7 +319,7 @@ export default function Home() {
             const response = await axios.post("/store-transactions", {
                 subtotal: transactionData.subtotal,
                 taxTotal: (transactionData.subtotal / 1.12) * 0.12,
-                change: parseFloat(change),
+                ...(parseFloat(change) > 0 && { change: parseFloat(change) }),
                 mopNames: transactionData.payments.map((payment) =>
                     payment.mopName.trim()
                 ),
@@ -540,15 +339,15 @@ export default function Home() {
                     FuelGradeName: item.FuelGradeName,
                 })),
                 customer: {
-                    name: customerName,
-                    address: customerAddress,
-                    tin: customerTIN,
-                    businessStyle: customerBusinessStyle,
+                    name: customerData.name,
+                    address: customerData.address,
+                    tin: customerData.tin,
+                    businessStyle: customerData.businessStyle,
                 },
                 cardDetails: {
-                    name: cardHolderName,
-                    code: approvalCode,
-                    number: cardNumber,
+                    cardNumber: cardDetails.cardNumber,
+                    approvalCode: cardDetails.approvalCode,
+                    cardHolderName: cardDetails.cardHolderName,
                 },
             });
 
@@ -559,7 +358,6 @@ export default function Home() {
                 setTransactionSaved(true);
                 setRemainingBalance(0);
                 setInputValue("Transaction Complete");
-
                 // Save summary details
                 setTransactionSummary({
                     change: parseFloat(change),
@@ -569,19 +367,29 @@ export default function Home() {
                     mopPayments: transactionData.payments,
                     deliveryData: deliveryData,
                 });
-
                 localStorage.removeItem("transaction");
-                // Reset card details after transaction
-                setCardNumber("");
-                setApprovalCode("");
-                setCardHolderName("");
+                setCustomerData({});
+                setCardDetails({});
                 handlePrintReceipt(transactionId);
             } else {
                 toast.error("Error retrieving transaction ID");
             }
         } catch (error) {
             toast.error("Error saving transaction");
-            console.error("Error saving transaction:", error);
+        }
+    };
+
+    const handlePrintReceipt = async (transactionId) => {
+        if (!transactionId) {
+            toast.info("Please transact first");
+            return;
+        }
+
+        try {
+            const response = await axios.get(`/print-receipt/${transactionId}`);
+            const receiptData = response.data;
+        } catch (error) {
+            toast.error("Error fetching receipt data");
         }
     };
 
@@ -589,10 +397,10 @@ export default function Home() {
         <>
             <Head title="Home" />
             <audio ref={audioRef} src="assets/audio/nozzle-status-sound.wav" />
-            <main className="grid grid-cols-1 md:grid-cols-2 gap-2 p-2 h-[100vh]">
+            <main className="grid grid-cols-1 md:grid-cols-2 gap-2 p-2 h-[100vh] bg-gradient-to-bl from-blue-100 via-transparent dark:from-blue-950 dark:via-transparent">
                 <Card className="dark:bg-gray-900 p-2">
                     {/* Sale Header */}
-                    <div className="flex-none">
+                    <div>
                         <Card className="max-w-full h-full">
                             <CardHeader className="justify-between">
                                 <GetCashier />
@@ -600,15 +408,13 @@ export default function Home() {
                             </CardHeader>
                             <CardBody className="justify-between">
                                 <div className="flex gap-4">
-                                    <div className="w-[70%] h-[70px] bg-slate-200 rounded-lg shadow-sm relative">
+                                    <div className="w-[70%] h-[65px] bg-slate-200 rounded-lg shadow-sm relative">
                                         <ToastContainer
-                                            position="top-right"
                                             autoClose={2000}
                                             hideProgressBar={false}
                                             newestOnTop={false}
                                             closeOnClick
-                                            rtl={false}
-                                            pauseOnFocusLoss
+                                            pauseOnFocusLoss={false}
                                             draggable
                                             pauseOnHover={false}
                                             theme="light"
@@ -620,7 +426,6 @@ export default function Home() {
                                                 bottom: 0,
                                                 left: 0,
                                                 width: "100%",
-                                                height: "50%",
                                             }}
                                         />
                                     </div>
@@ -642,49 +447,35 @@ export default function Home() {
                         />
                     </div>
                     {/* POS Keyboard */}
-                    <div className="flex-none">
+                    <div>
                         <Card className="w-full gap-2 p-2">
-                            <div className="flex gap-2">
-                                <Input
-                                    variant="bordered"
-                                    label={
-                                        <p className="font-bold text-xl">
-                                            SUBTOTAL
-                                        </p>
-                                    }
-                                    size="lg"
-                                    value={`₱${subtotal}`}
-                                    labelPlacement="outside-left"
-                                    className="w-[40%]"
-                                    classNames={{
-                                        input: [
-                                            "text-black text-xl font-bold text-right",
-                                        ],
-                                    }}
-                                    isReadOnly
-                                />
-                                <Input
-                                    variant="bordered"
-                                    className="w-[60%]"
-                                    classNames={{
-                                        input: [
-                                            "text-black text-2xl font-bold text-right",
-                                        ],
-                                    }}
-                                    value={inputValue}
-                                    isReadOnly
-                                    size="lg"
-                                />
-                            </div>
-
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-1">
-                                <POSKeyboard
-                                    handleButtonClick={handleButtonClick}
-                                    buttons={buttons}
-                                    buttonClickHandlers={buttonClickHandlers}
-                                    setInputValue={setInputValue}
-                                />
-                            </div>
+                            <Input
+                                variant="bordered"
+                                classNames={{
+                                    input: [
+                                        "text-black text-2xl font-bold text-right",
+                                    ],
+                                }}
+                                value={inputValue}
+                                isReadOnly
+                                size="lg"
+                            />
+                            <POSKeyboard
+                                setDeliveryData={setDeliveryData}
+                                deliveryData={deliveryData}
+                                setSelectedRow={setSelectedRow}
+                                selectedRow={selectedRow}
+                                subtotal={subtotal}
+                                onToast={handleToast}
+                                buttons={buttons}
+                                setInputValue={setInputValue}
+                                setTransactionSummary={setTransactionSummary}
+                                setTransactionSaved={setTransactionSaved}
+                                setCustomerModalOpen={setCustomerModalOpen}
+                                setTotalPaid={setTotalPaid}
+                                totalPaid={totalPaid}
+                                handlePrintReceipt={handlePrintReceipt}
+                            />
                         </Card>
                     </div>
                 </Card>
@@ -696,31 +487,28 @@ export default function Home() {
                                 key="pumps"
                                 title={<p className="font-extrabold">PUMPS</p>}
                             >
-                                <Suspense fallback={<div>Loading...</div>}>
-                                    {pumpStatus.length === 0 ? (
-                                        <div className="col-span-4 flex flex-col items-center justify-center py-12 text-xl font-extrabold text-center text-red-500">
-                                            <GiGasPump className="text-7xl" />
-                                            <p>No pumps connected!</p>
+                                {pumpStatus.length === 0 ? (
+                                    <div className="col-span-4 flex flex-col items-center justify-center py-12 text-xl font-extrabold text-center text-red-500">
+                                        <GiGasPump className="text-7xl" />
+                                        <p>No pumps connected!</p>
+                                    </div>
+                                ) : (
+                                    <div className="overflow-y-auto scrollbar-hide max-h-screen p-1">
+                                        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
+                                            {pumpStatus.map((pump) => (
+                                                <PumpCard
+                                                    key={pump.Id}
+                                                    pump={pump}
+                                                    handleAppendDeliveryData={
+                                                        handleAppendDeliveryData
+                                                    }
+                                                    onToast={handleToast}
+                                                />
+                                            ))}
                                         </div>
-                                    ) : (
-                                        <div className="overflow-y-auto scrollbar-hide max-h-screen p-1">
-                                            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
-                                                {pumpStatus.map((pump) => (
-                                                    <PumpCard
-                                                        key={pump.Id}
-                                                        pump={pump}
-                                                        handleAppendDeliveryData={
-                                                            handleAppendDeliveryData
-                                                        }
-                                                        onToast={handleToast}
-                                                    />
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-                                </Suspense>
+                                    </div>
+                                )}
                             </Tab>
-
                             <Tab
                                 key="mop"
                                 title={<p className="font-extrabold">MOP</p>}
@@ -731,7 +519,6 @@ export default function Home() {
                                     onApplyDiscount={handleApplyDiscount}
                                 />
                             </Tab>
-
                             <Tab
                                 key="reports"
                                 title={
@@ -740,7 +527,6 @@ export default function Home() {
                             >
                                 <ReportsIndex />
                             </Tab>
-
                             <Tab
                                 key="config"
                                 title={<p className="font-extrabold">CONFIG</p>}
@@ -754,46 +540,21 @@ export default function Home() {
             <CustomerDetails
                 isOpen={isCustomerModalOpen}
                 onClose={handleCloseCustomerDetails}
-                onCustomerDataChange={(key, value) => {
-                    switch (key) {
-                        case "name":
-                            setCustomerName(value);
-                            break;
-                        case "address":
-                            setCustomerAddress(value);
-                            break;
-                        case "tin":
-                            setCustomerTIN(value);
-                            break;
-                        case "businessStyle":
-                            setCustomerBusinessStyle(value);
-                            break;
-                        default:
-                            break;
-                    }
-                }}
-                customerName={customerName}
-                customerAddress={customerAddress}
-                customerTIN={customerTIN}
-                customerBusinessStyle={customerBusinessStyle}
+                onCustomerDataChange={handleCustomerDataChange}
+                customerName={customerData.name}
+                customerAddress={customerData.address}
+                customerTIN={customerData.tin}
+                customerBusinessStyle={customerData.businessStyle}
                 onSave={handleSaveCustomerDetails}
-                setCustomerName={setCustomerName}
-                setCustomerAddress={setCustomerAddress}
-                setCustomerTIN={setCustomerTIN}
-                setCustomerBusinessStyle={setCustomerBusinessStyle}
             />
             <CardDetails
                 isOpen={isCardDetailsOpen}
                 onOpenChange={setCardDetailsOpen}
-                cardNumber={cardNumber}
-                setCardNumber={setCardNumber}
-                approvalCode={approvalCode}
-                setApprovalCode={setApprovalCode}
-                cardHolderName={cardHolderName}
-                setCardHolderName={setCardHolderName}
+                cardDetails={cardDetails}
+                setCardDetails={setCardDetails}
                 onSave={async () => {
-                    if (!cardNumber || !approvalCode || !cardHolderName) {
-                        toast.error("Please fill in all card details.");
+                    if (!cardDetails.approvalCode) {
+                        toast.error("Please fill required fields.");
                         return;
                     }
                     setCardDetailsOpen(false);

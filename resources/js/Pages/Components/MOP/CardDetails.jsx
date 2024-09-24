@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
     Modal,
     ModalBody,
@@ -12,74 +12,62 @@ import {
 export const CardDetails = ({
     isOpen,
     onOpenChange,
-    cardNumber,
-    setCardNumber,
-    approvalCode,
-    setApprovalCode,
-    cardHolderName,
-    setCardHolderName,
+    cardDetails,
+    setCardDetails,
     onSave,
 }) => {
+    const handleChange = (field) => (e) => {
+        setCardDetails((prev) => ({ ...prev, [field]: e.target.value }));
+    };
+
+    const handleClose = () => {
+        setCardDetails({
+            cardNumber: "",
+            approvalCode: "",
+            cardHolderName: "",
+        });
+        onOpenChange(false);
+    };
+
     return (
         <Modal size="lg" isOpen={isOpen} onOpenChange={onOpenChange}>
             <ModalContent>
-                {(onClose) => (
-                    <>
-                        <ModalHeader className="flex flex-col gap-1">
-                            DEBIT/CREDIT CARD INFORMATION
-                        </ModalHeader>
-                        <ModalBody>
-                            <Input
-                                autoFocus
-                                label="Card #"
-                                placeholder="XXX-XXX-XXX-XXX-XXX"
-                                variant="bordered"
-                                value={cardNumber}
-                                onChange={(e) => setCardNumber(e.target.value)}
-                            />
-                            <Input
-                                label="Approval Code"
-                                placeholder="XXXXXX"
-                                variant="bordered"
-                                value={approvalCode}
-                                onChange={(e) =>
-                                    setApprovalCode(e.target.value)
-                                }
-                            />
-                            <Input
-                                label="Card Holder Name"
-                                placeholder="Card Holder Name"
-                                variant="bordered"
-                                value={cardHolderName}
-                                onChange={(e) =>
-                                    setCardHolderName(e.target.value)
-                                }
-                            />
-                        </ModalBody>
-                        <ModalFooter>
-                            <Button
-                                className="w-full"
-                                color="success"
-                                onPress={onSave}
-                            >
-                                Save
-                            </Button>
-                            <Button
-                                className="w-full"
-                                color="danger"
-                                onPress={() => {
-                                    // Clear card details if user closes the modal
-                                    setCardNumber("");
-                                    setApprovalCode("");
-                                    setCardHolderName("");
-                                    onClose();
-                                }}
-                            >
-                                Close
-                            </Button>
-                        </ModalFooter>
-                    </>
-                )}
+                <ModalHeader className="flex flex-col gap-1">
+                    DEBIT/CREDIT CARD INFORMATION
+                </ModalHeader>
+                <ModalBody>
+                    <Input
+                        autoFocus
+                        label="Card #"
+                        placeholder="XXX-XXX-XXX-XXX-XXX"
+                        variant="bordered"
+                        value={cardDetails.cardNumber}
+                        onChange={handleChange("cardNumber")}
+                    />
+                    <Input
+                        label="Approval Code"
+                        placeholder="XXXXXX"
+                        variant="bordered"
+                        isRequired
+                        value={cardDetails.approvalCode}
+                        onChange={handleChange("approvalCode")}
+                    />
+                    <Input
+                        label="Card Holder Name"
+                        placeholder="Card Holder Name"
+                        variant="bordered"
+                        value={cardDetails.cardHolderName}
+                        onChange={handleChange("cardHolderName")}
+                    />
+                </ModalBody>
+                <ModalFooter>
+                    <Button className="w-full" color="success" onPress={onSave}>
+                        Save
+                    </Button>
+                    <Button className="w-full" color="danger" onPress={handleClose}>
+                        Close
+                    </Button>
+                </ModalFooter>
             </ModalContent>
         </Modal>
     );

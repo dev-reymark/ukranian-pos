@@ -6,7 +6,7 @@ export default function ScreenSizeWrapper({ children }) {
 
   useEffect(() => {
     const checkScreenSize = () => {
-      setIsMobile(window.innerWidth <= 768);
+      setIsMobile(window.innerWidth < 1024);
     };
 
     checkScreenSize(); // Initial check

@@ -21,7 +21,7 @@ Route::get('/', function () {
 Route::post('/', [LoginController::class, 'login']);
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
-// Authenticated Routes
+// Authenticated Routesf
 Route::middleware('auth:cashier')->group(function () {
     Route::get('/home', function () {
         return Inertia::render('Home');
@@ -52,7 +52,7 @@ Route::middleware('auth:cashier')->group(function () {
     Route::get('/receipt/{transactionId}', [TransactionController::class, 'getReceipt']);
     Route::get('/print-receipt/{transactionId}', [TransactionController::class, 'printReceipt']);
     Route::post('/save-card-details', [TransactionController::class, 'saveCardDetails']);
-    
+
     // GradeController
     // Route::post('/store-grades', [GradeController::class, 'getFuelGrades']);
     // Route::get('/get-grades', [GradeController::class, 'getFuelGrades']);
@@ -79,4 +79,4 @@ Route::middleware('auth:cashier')->group(function () {
 Route::get('/test-print', [TestController::class, 'testPrint']);
 Route::get('/getitemstype', [TestController::class, 'getItemtype']);
 
-Route::get('/cashiers', [CashierController::class, 'getAllCashier']);
+// Route::get('/cashiers', [CashierController::class, 'getAllCashier']);

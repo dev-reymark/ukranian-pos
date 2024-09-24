@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
     Card,
     CardHeader,
@@ -17,17 +17,10 @@ import {
 } from "@nextui-org/react";
 import PumpDelivery from "./PumpDelivery";
 import { CheckIcon } from "../Icon";
-import {
-    IoCloseCircle,
-    IoPauseCircle,
-    IoStopCircle,
-    IoPlayCircle,
-    IoStopCircleSharp,
-} from "react-icons/io5";
+import { IoCloseCircle } from "react-icons/io5";
 import { getPumpStatusColor } from "./PumpStatus";
 import axios from "axios";
 import { GrClose } from "react-icons/gr";
-import { TbHandStop } from "react-icons/tb";
 
 export const PumpCard = ({ pump, handleAppendDeliveryData, onToast }) => {
     const showButtons =
@@ -146,7 +139,7 @@ export const PumpCard = ({ pump, handleAppendDeliveryData, onToast }) => {
                         disabled={pump.Type === "PumpOfflineStatus"}
                     />
                     <Chip
-                        size="lg"
+                        
                         color={getPumpStatusColor(
                             pump.Type,
                             pump.Data.NozzleUp

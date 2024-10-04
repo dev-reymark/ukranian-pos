@@ -204,7 +204,7 @@ export default function Home() {
             toast.success(`Change: ₱${newChange}`);
             setInputValue(`Change: ₱${newChange}`);
 
-            // Since the payment is more than the total, we save the transaction
+            // Since the payment is more than the total, we can save the transaction
             existingTransaction.remainingBalance = 0;
             localStorage.setItem(
                 "transaction",

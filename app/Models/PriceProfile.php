@@ -7,9 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 class PriceProfile extends Model
 {
     protected $table = 'Price_Profile';
-
     protected $primaryKey = 'Price_Profile_ID';
-
+    
     public $timestamps = false;
 
     protected $fillable = [

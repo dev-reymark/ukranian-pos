@@ -38,9 +38,10 @@ Route::middleware('auth:cashier')->group(function () {
     Route::post('/stop-all-pumps', [PumpController::class, 'stopAllPumps']);
     Route::post('/authorize-all-pumps', [PumpController::class, 'authorizeAllPumps']);
     Route::match(['get', 'post'], '/restart-pts', [PumpController::class, 'restartPTSController']);
-    Route::get('/get-pump-nozzle', [PumpController::class, 'getPumpNozzlesConfiguration']);
-    Route::post('/set-pump-nozzle', [PumpController::class, 'setPumpNozzlesConfiguration']);
+    // Route::get('/get-pump-nozzle', [PumpController::class, 'getPumpNozzlesConfiguration']);
+    // Route::post('/set-pump-nozzle', [PumpController::class, 'setPumpNozzlesConfiguration']);
     Route::post('/set-fuel-grades', [PumpController::class, 'setFuelGradesConfiguration']);
+    Route::get('/get-fuel-grades', [PumpController::class, 'getFuelGradesConfiguration']);
     // Route::get('/get-users', [PumpController::class, 'getUserConfiguration']);
     // Route::match(['get', 'post'], '/set-users', [PumpController::class, 'setUserConfiguration']);
 
@@ -78,5 +79,4 @@ Route::middleware('auth:cashier')->group(function () {
 
 Route::get('/test-print', [TestController::class, 'testPrint']);
 Route::get('/getitemstype', [TestController::class, 'getItemtype']);
-
-// Route::get('/cashiers', [CashierController::class, 'getAllCashier']);
+Route::get('/test-job', [TestController::class, 'dispatchJob']);

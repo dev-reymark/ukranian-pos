@@ -16,7 +16,7 @@ class APIController extends Controller
     public function getTransactions(Request $request)
     {
         // Retrieve all transactions
-        $transactions = Transaction::with([])->get();
+        $transactions = Transaction::with(['cashier','details','items'])->get();
 
         return response()->json($transactions);
     }

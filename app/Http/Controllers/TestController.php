@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\TestJob;
 use App\Models\ItemType;
 use Mike42\Escpos\Printer;
 use Mike42\Escpos\CapabilityProfile;
@@ -144,5 +145,13 @@ class TestController extends Controller
     public function getItemType()
     {
         return ItemType::all();
+    }
+
+    public function dispatchJob()
+    {
+        // Dispatch the TestJob
+        TestJob::dispatch();
+
+        return response()->json(['message' => 'Test job dispatched!']);
     }
 }

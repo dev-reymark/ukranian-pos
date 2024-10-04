@@ -71,7 +71,7 @@ export default function Index({ onToast }) {
             className="p-2 h-[150px]"
         >
             <div className="flex justify-center items-center h-full">
-                <h1 className="text-xl font-extrabold">{label}</h1>
+                <h1 className="text-xl font-extrabold uppercase">{label}</h1>
             </div>
         </Card>
     );
@@ -98,6 +98,7 @@ export default function Index({ onToast }) {
                 onOpenChange={onOpenChangeAbout}
             />
             <PriceChange
+                onToast={onToast}
                 isOpen={isOpenPriceChange}
                 onOpenChange={onOpenChangePriceChange}
             />

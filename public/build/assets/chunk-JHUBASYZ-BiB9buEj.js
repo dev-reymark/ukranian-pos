@@ -1,1 +1,0 @@
-import{f as u,h as x,H as p,i as v,j as C}from"./app-DJ0OCxwK.js";var e=u((r,t)=>{var s;const{as:l,className:c,children:n,...d}=r,f=l||"div",m=x(t),{slots:o,classNames:a}=p(),i=v(a==null?void 0:a.footer,c);return C.jsx(f,{ref:m,className:(s=o.footer)==null?void 0:s.call(o,{class:i}),...d,children:n})});e.displayName="NextUI.CardFooter";var R=e;export{R as c};

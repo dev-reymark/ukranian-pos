@@ -14,34 +14,49 @@ import {
     Divider,
     CheckboxGroup,
     Checkbox,
+    Spacer,
 } from "@nextui-org/react";
 import axios from "axios";
 import toast, { Toaster } from "react-hot-toast";
-import { now, getLocalTimeZone } from "@internationalized/date";
+import { now, today, getLocalTimeZone } from "@internationalized/date";
 
-function PriceChange({ isOpen, onOpenChange }) {
+function PriceChange({ isOpen, onOpenChange, onToast }) {
     const [grades, setGrades] = useState([]);
     const [selectedGrades, setSelectedGrades] = useState([]);
     const [prices, setPrices] = useState({});
     const [newPrices, setNewPrices] = useState({});
     const [loading, setLoading] = useState(false);
     const [isPriceInvalid, setIsPriceInvalid] = useState(false);
+    const [effectivityDate, setEffectivityDate] = useState(
+        now(getLocalTimeZone()).add({ minutes: 5 })
+    );
+
+    const handleEffectivityDateChange = (date) => {
+        setEffectivityDate(date);
+    };
 
     useEffect(() => {
         if (isOpen) {
             axios
-                .get("/get-pump-nozzle")
+                .get("/get-fuel-grades")
                 .then((response) => {
-                    const data = response.data;
-                    setGrades(data.FuelGrades || []);
+                    console.log("Fuel grades response:", response.data); // Log the response for debugging
+
+                    // Directly use the response array instead of accessing FuelGrades
+                    const gradesData = response.data;
+
+                    // Set grades data and initial prices
+                    setGrades(gradesData || []);
                     const initialPrices = {};
-                    data.FuelGrades.forEach((grade) => {
+
+                    // Iterate over the grades to set initial prices
+                    gradesData.forEach((grade) => {
                         initialPrices[grade.Id] = grade.Price.toString();
                     });
                     setPrices(initialPrices);
                 })
                 .catch((error) => {
-                    console.error("Error fetching grades:", error);
+                    console.error("Error fetching grades:", error); // Log the error
                 });
         }
     }, [isOpen]);
@@ -59,7 +74,12 @@ function PriceChange({ isOpen, onOpenChange }) {
 
     const handlePriceUpdate = () => {
         if (selectedGrades.length === 0) {
-            console.error("No grades selected");
+            onToast("No grades selected", "error");
+            return;
+        }
+
+        if (!effectivityDate) {
+            onToast("Please select an effectivity date", "error");
             return;
         }
 
@@ -82,8 +102,12 @@ function PriceChange({ isOpen, onOpenChange }) {
                       Price: parseFloat(
                           newPrices[grade.Id] || prices[grade.Id]
                       ),
+                      isSelected: true, // Mark this grade as selected
                   }
-                : grade
+                : {
+                      ...grade,
+                      isSelected: false, // Mark as not selected
+                  }
         );
 
         const updateRequest = {
@@ -97,6 +121,7 @@ function PriceChange({ isOpen, onOpenChange }) {
                     },
                 },
             ],
+            EffectivityDate: effectivityDate.toString(),
         };
 
         setLoading(true);
@@ -139,13 +164,11 @@ function PriceChange({ isOpen, onOpenChange }) {
                                     PRICE CHANGE
                                 </h1>
                             </ModalHeader>
-
+                            <Divider />
+                            <Spacer y={2} />
                             <ModalBody className="w-full mx-auto p-3">
                                 <DatePicker
                                     variant="faded"
-                                    defaultValue={now(
-                                        getLocalTimeZone("Asia/Manila")
-                                    )}
                                     label={
                                         <p className="text-lg font-extrabold">
                                             EFFECTIVITY
@@ -153,8 +176,13 @@ function PriceChange({ isOpen, onOpenChange }) {
                                     }
                                     labelPlacement="outside-left"
                                     showMonthAndYearPickers
-                                    minValue={now()}
+                                    minValue={now(getLocalTimeZone())}
+                                    defaultValue={now(getLocalTimeZone()).add({
+                                        minutes: 5,
+                                    })}
+                                    onChange={handleEffectivityDateChange}
                                 />
+                                <Spacer y={2} />
                                 <div className="grid grid-cols-2 gap-2">
                                     <Card>
                                         <CardHeader>

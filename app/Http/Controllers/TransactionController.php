@@ -18,7 +18,9 @@ use Mike42\Escpos\PrintConnectors\FilePrintConnector;
 use Exception;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
+use DateTime;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 
 class TransactionController extends Controller
@@ -47,161 +49,334 @@ class TransactionController extends Controller
             return response()->json(['error' => 'Cashier not authenticated'], 401);
         }
 
-        // Get the current maximum BIR_Trans_Number and increment it
-        $maxBIRTransNumber = Transaction::max('BIR_Trans_Number');
-        $newBIRTransNumber = $maxBIRTransNumber ? $maxBIRTransNumber + 1 : 1;
+        try {
+            DB::beginTransaction();
 
-        // Save Transaction
-        $transaction = new Transaction([
-            'Tax_Total' => $validated['taxTotal'],
-            'Sale_Total' => $validated['subtotal'],
-            'POS_ID' => 1,
-            'Transaction_Number' => 1,
-            'Transaction_Date' => now(),
-            'Period_ID' => 1,
-            'Cashier_ID' => $cashier->Cashier_ID,
-            'BIR_Trans_Number' => $newBIRTransNumber,
-        ]);
-        $transaction->save();
+            // Get the current maximum BIR_Trans_Number and increment it
+            $maxBIRTransNumber = Transaction::max('BIR_Trans_Number');
+            $newBIRTransNumber = $maxBIRTransNumber ? $maxBIRTransNumber + 1 : 1;
 
-        // Save TransactionItems
-        $itemNumber = 1;
-        foreach ($validated['deliveryIds'] as $pump) {
-            $pumpNumber = str_pad($pump['Pump'], 2, '0', STR_PAD_LEFT);
-            $itemDescription = $pumpNumber . '-' . $pump['FuelGradeName'];
-            TransactionItem::create([
-                'Transaction_ID' => $transaction->Transaction_ID,
-                'Item_Description' => $itemDescription,
-                'Item_Number' => $itemNumber,
-                'Item_Type' => 2, // Post Pay Delivery
-                'Item_Price' => $pump['Price'],
-                'Item_Quantity' => $pump['Volume'],
-                'Item_Value' => $pump['Amount'],
-                // 'Item_Discount_Total' => $pump['DiscountedAmount'],
+            // Save Transaction
+            $transaction = new Transaction([
+                'Tax_Total' => $validated['taxTotal'],
+                'Sale_Total' => $validated['subtotal'],
+                'POS_ID' => 1,
+                'Transaction_Number' => 1,
+                'Transaction_Date' => now(),
+                'Period_ID' => 1,
+                'Cashier_ID' => $cashier->Cashier_ID,
+                'BIR_Trans_Number' => $newBIRTransNumber,
             ]);
-            $itemNumber++;
+            $transaction->save();
 
-            // Add discount item if DiscountedAmount and PresetName are present
-            if (isset($pump['DiscountedAmount']) && isset($pump['PresetName'])) {
-                if ($pump['DiscountType'] == '1') {
-                    $itemPrice = $pump['PresetValue'];
-                    $itemQuantity = $pump['OriginalAmount']; // Assuming 'Amount' represents the subtotal
-                } elseif ($pump['DiscountType'] == '2') {
-                    $itemPrice = $pump['PresetValue'];
-                    $itemQuantity = $pump['Volume'];
-                } elseif ($pump['DiscountType'] == '3') {
-                    $itemPrice = $pump['PresetValue'];
-                    $itemQuantity = 1; // Fixed quantity for discount type 3
-                } else {
-                    $itemPrice = 0;
-                    $itemQuantity = 1;
+            $transactionId = DB::getPdo()->lastInsertId();
+
+            // Save TransactionItems using the stored procedure
+            $itemNumber = 1;
+            foreach ($validated['deliveryIds'] as $pump) {
+                $pumpNumber = str_pad($pump['Pump'], 2, '0', STR_PAD_LEFT);
+                $itemDescription = $pumpNumber . '-' . $pump['FuelGradeName'];
+
+                // Insert the main item
+                $result = DB::statement(
+                    'EXEC dbo.SP_LOG_TRANSACTION_ITEM ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?',
+                    [
+                        (int) $transactionId,
+                        (int) $itemNumber,
+                        1, // ITEM_TAX_ID
+                        2, // ITEM_TYPE: Post Pay Delivery
+                        substr($itemDescription, 0, 20), // ITEM_DESC
+                        (float) $pump['Price'],
+                        (float) $pump['Volume'],
+                        (float) $pump['Amount'],
+                        0, // ITEM_ID
+                        0, // ITEM_TAX_AMOUNT
+                        0, // DELIVERY_ID
+                        null, // original_item_value_pre_tax_change
+                        null, // is_tax_exempt_item
+                        null, // is_zero_rated_tax_item
+                        null, // pos_id
+                        null, // ITEM_DISCOUNT_TOTAL
+                        null, // discount_code_type
+                        null, // item_DB_Price
+                        null  // discount_preset_id
+                    ]
+                );
+
+                if (!$result) {
+                    throw new \Exception('Failed to execute stored procedure for transaction item');
                 }
 
-                TransactionItem::create([
-                    'Transaction_ID' => $transaction->Transaction_ID,
-                    'Item_Description' => $pump['PresetName'],
-                    'Item_Number' => $itemNumber,
-                    'Item_Type' => 52, // Discount
-                    'Item_Price' => $itemPrice,
-                    'Item_Quantity' => $itemQuantity,
-                    'Item_Value' => $pump['DiscountedAmount'],
-                ]);
+                $itemNumber++;
+
+                // Check if there is a discount for the current item
+                if (isset($pump['DiscountedAmount']) && isset($pump['PresetName'])) {
+                    if ($pump['DiscountType'] == '1') {
+                        $itemPrice = $pump['PresetValue'];
+                        $itemQuantity = $pump['OriginalAmount'];
+                    } elseif ($pump['DiscountType'] == '2') {
+                        $itemPrice = $pump['PresetValue'];
+                        $itemQuantity = $pump['Volume'];
+                    } elseif ($pump['DiscountType'] == '3') {
+                        $itemPrice = $pump['PresetValue'];
+                        $itemQuantity = 1; // Fixed quantity for discount type 3
+                    } else {
+                        $itemPrice = 0;
+                        $itemQuantity = 1;
+                    }
+
+                    // Insert the discount item
+                    $result = DB::statement(
+                        'EXEC dbo.SP_LOG_TRANSACTION_ITEM ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?',
+                        [
+                            (int) $transactionId,
+                            (int) $itemNumber,
+                            1, // ITEM_TAX_ID
+                            52, // ITEM_TYPE: Discount
+                            substr($pump['PresetName'], 0, 20), // ITEM_DESC
+                            (float) $itemPrice,
+                            (float) $itemQuantity,
+                            (float) $pump['DiscountedAmount'],
+                            0, // ITEM_ID
+                            0, // ITEM_TAX_AMOUNT
+                            0, // DELIVERY_ID
+                            null, // original_item_value_pre_tax_change
+                            null, // is_tax_exempt_item
+                            null, // is_zero_rated_tax_item
+                            null, // pos_id
+                            null, // ITEM_DISCOUNT_TOTAL
+                            null, // discount_code_type
+                            null, // item_DB_Price
+                            null  // discount_preset_id
+                        ]
+                    );
+
+                    if (!$result) {
+                        throw new \Exception('Failed to execute stored procedure for discount item');
+                    }
+
+                    $itemNumber++;
+                }
+            }
+
+            // Add `mopPayments`
+            foreach ($validated['mopPayments'] as $payment) {
+                $result = DB::statement(
+                    'EXEC dbo.SP_LOG_TRANSACTION_ITEM ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?',
+                    [
+                        (int) $transactionId,
+                        (int) $itemNumber,
+                        1, // ITEM_TAX_ID
+                        7, // ITEM_TYPE: Mop
+                        substr($payment['mopName'], 0, 20), // ITEM_DESC
+                        0, // ITEM_PRICE
+                        0, // ITEM_QTY
+                        (float) $payment['amount'],
+                        0, // ITEM_ID
+                        0, // ITEM_TAX_AMOUNT
+                        0, // DELIVERY_ID
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null
+                    ]
+                );
+
+                if (!$result) {
+                    throw new \Exception('Failed to execute stored procedure for mop payment item');
+                }
+
                 $itemNumber++;
             }
-        }
-        // Add `mopPayments`
-        foreach ($validated['mopPayments'] as $payment) {
-            TransactionItem::create([
-                'Transaction_ID' => $transaction->Transaction_ID,
-                'Item_Description' => $payment['mopName'],
-                'Item_Number' => $itemNumber,
-                'Item_Type' => 7, // Mop
-                'Item_Price' => 0,
-                'Item_Quantity' => 0,
-                'Item_Value' => $payment['amount'],
-            ]);
-            $itemNumber++;
-        }
-        // Add `change`, if it exists
-        if (isset($validated['change'])) {
-            TransactionItem::create([
-                'Transaction_ID' => $transaction->Transaction_ID,
-                'Item_Description' => 'Change',
-                'Item_Number' => $itemNumber,
-                'Item_Type' => 10, // Change
-                'Item_Price' => 0,
-                'Item_Quantity' => 0,
-                'Item_Value' => $validated['change'],
-            ]);
-            $itemNumber++;
-        }
 
-        // Extract delivery IDs if they are nested objects
-        $deliveryIds = array_map(function ($pump) {
-            return $pump['Delivery_ID'];
-        }, $validated['deliveryIds']);
+            // Add `change`
+            if (isset($validated['change'])) {
+                $result = DB::statement(
+                    'EXEC dbo.SP_LOG_TRANSACTION_ITEM ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?',
+                    [
+                        (int) $transactionId,
+                        (int) $itemNumber,
+                        1, // ITEM_TAX_ID
+                        10, // ITEM_TYPE: Change
+                        'Change', // ITEM_DESC
+                        0, // ITEM_PRICE
+                        0, // ITEM_QTY
+                        (float) $validated['change'],
+                        0, // ITEM_ID
+                        0, // ITEM_TAX_AMOUNT
+                        0, // DELIVERY_ID
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null
+                    ]
+                );
 
-        // Save Card Details if provided
-        if (isset($validated['cardDetails'])) {
-            $fullCardNumber = $validated['cardDetails']['number'] ?? '';
-            $lastFourDigits = substr($fullCardNumber, -4);
+                if (!$result) {
+                    throw new \Exception('Failed to execute stored procedure for change item');
+                }
 
-            TransactionDetail::create([
-                'Transaction_ID' => $transaction->Transaction_ID,
-                'CardNumber' => $lastFourDigits,
-                'ApprovalCode' => $validated['cardDetails']['code'] ?? '',
-                'CustomerName' => $validated['cardDetails']['name'] ?? '',
-                'Type' => 1,
-            ]);
-        }
+                $itemNumber++;
+            }
 
-        // Update Is_Sold to 1 for relevant PumpDeliveries
-        PumpDelivery::whereIn('Delivery_ID', $deliveryIds)
-            ->update(['Is_Sold' => 1]);
+            // Extract delivery IDs if they are nested objects
+            $deliveryIds = array_map(function ($pump) {
+                return $pump['Delivery_ID'];
+            }, $validated['deliveryIds']);
 
-        // Serialize the transaction object
-        // $transactionData = $transaction->toArray();
 
-        $transactionData = [
-            'SITETRANSACTIONS' => [
-                [
-                    'BRANCHID' => 1,
-                    'Transaction_ID' => $transaction->Transaction_ID,
-                    'Tax_Total' => $transaction->Tax_Total,
-                    'Sale_Total' => $transaction->Sale_Total,
-                    'POS_ID' => $transaction->POS_ID,
-                    'Transaction_Number' => $transaction->Transaction_Number,
-                    'Transaction_Date' => $transaction->Transaction_Date->toDateTimeString(),
-                    'Period_ID' => $transaction->Period_ID,
-                    'Cashier_ID' => $transaction->Cashier_ID,
-                    'BIR_Trans_Number' => $transaction->BIR_Trans_Number,
-
-                ]
-            ],
-            'Customer_Action' => 'insert'
-        ];
-
-        // Send the serialized transaction data to an external API
-        try {
-            $externalResponse = Http::post('http://172.16.12.111:8014/syncTransactions', [
-                'transaction' => $transactionData,
-            ]);
-
-            if ($externalResponse->failed()) {
-                Log::error('Failed to send transaction data to external API', [
-                    'response' => $externalResponse->body(),
+            // Save Card Details if provided
+            if (isset($validated['cardDetails'])) {
+                TransactionDetail::create([
+                    'Transaction_ID' => $transactionId, // Use the fetched Transaction_ID
+                    'CardNumber' => $validated['cardDetails']['cardNumber'] ?? '',
+                    'ApprovalCode' => $validated['cardDetails']['approvalCode'] ?? '',
+                    'CustomerName' => $validated['customer']['name'] ?? $validated['cardDetails']['cardHolderName'] ?? '',
+                    'Address' => $validated['customer']['address'] ?? '', // Added customer address
+                    'TIN' => $validated['customer']['tin'] ?? '', // Added TIN
+                    'BusinessStyle' => $validated['customer']['businessStyle'] ?? '', // Added business style
+                    'Type' => 1,
                 ]);
             }
-        } catch (\Exception $e) {
-            Log::error('Exception occurred while sending transaction data to external API', [
-                'exception' => $e->getMessage(),
-            ]);
-        }
 
-        return response()->json([
-            'message' => 'Transaction saved successfully',
-            'transaction' => $transaction->Transaction_ID,
-        ], 201);
+            // Update Is_Sold to 1 for relevant PumpDeliveries
+            PumpDelivery::whereIn('Delivery_ID', $deliveryIds)
+                ->update(['Is_Sold' => 1]);
+
+            DB::commit();
+
+            // Serialize the transaction object
+            // $transactionData = $transaction->toArray();
+
+            // Clarion epoch start date (1800-12-28)
+            $clarionEpoch = new DateTime('1800-12-28');
+            $clarionEpochTimestamp = $clarionEpoch->getTimestamp();
+
+            // Ensure $transaction->Transaction_Date is a valid DateTime object
+            if ($transaction->Transaction_Date instanceof DateTime) {
+                $transactionDate = $transaction->Transaction_Date;
+            } else {
+                $transactionDate = new DateTime($transaction->Transaction_Date);
+            }
+
+            // Convert Transaction_Date to UNIX timestamp
+            $transactionDateTimestamp = $transactionDate->getTimestamp();
+
+            // Calculate the Clarion date as the difference in days
+            $clarionDate = floor(($transactionDateTimestamp - $clarionEpochTimestamp) / (60 * 60 * 24)) + 1;
+
+            // Calculate the Clarion time (ticks since midnight)
+            $timePart = $transactionDate->format('H:i:s');
+            $timeParts = explode(':', $timePart);
+
+            $hours = isset($timeParts[0]) ? (int)$timeParts[0] : 0;
+            $minutes = isset($timeParts[1]) ? (int)$timeParts[1] : 0;
+            $seconds = isset($timeParts[2]) ? (int)$timeParts[2] : 0;
+
+            // Calculate total seconds since midnight
+            $totalSecondsSinceMidnight = ($hours * 3600) + ($minutes * 60) + $seconds;
+
+            // Convert total seconds into ticks (100 ticks = 1 second)
+            $clarionTime = $totalSecondsSinceMidnight * 100;
+
+
+            $transactionData = [
+                'SITETRANSACTIONS' => [
+                    [
+                        'BRANCHID' => 1,
+                        'Transaction_ID' => $transaction->Transaction_ID,
+                        'Tax_Total' => $transaction->Tax_Total,
+                        'Sale_Total' => $transaction->Sale_Total,
+                        'POS_ID' => $transaction->POS_ID,
+                        'Transaction_Number' => $transaction->Transaction_Number,
+                        'Transaction_Date' => $clarionDate, // Clarion date format
+                        'transaction_date_group' => [
+                            'transaction_date_date' => $clarionDate, // Clarion date for the date part
+                            'transaction_date_time' => $clarionTime, // Clarion time for the time part (ticks since midnight)
+                        ],
+                        'Period_ID' => $transaction->Period_ID,
+                        'Cashier_ID' => $transaction->Cashier_ID,
+                        'BIR_Trans_Number' => $transaction->BIR_Trans_Number,
+                    ]
+                ],
+                'SiteTransactions_Action' => 'insert',
+                'SiteTransactionDetails' => [
+                    [
+                        'BRANCHID' => 1,
+                        'Transaction_ID' => $transactionId, // Use the variable instead of $transaction->Transaction_ID
+                        'CustomerName' => $validated['customer']['name'] ?? $validated['cardDetails']['cardHolderName'] ?? '',
+                        'CardNumber' => $validated['cardDetails']['cardNumber'] ?? '',
+                        'ApprovalCode' => $validated['cardDetails']['approvalCode'] ?? '',
+                        'Type' => '1',
+                        'Address' => $validated['customer']['address'] ?? '', // Assuming you have this in your request
+                        'TIN' => $validated['customer']['tin'] ?? '', // Assuming you have TIN in your request
+                        'BusinessStyle' => $validated['customer']['businessStyle'] ?? '', // Assuming you have this in your request
+                    ]
+                ],
+                'SiteTransaction_Details_Action' => 'insert',
+                'SITETRANSACTIONITEMS' => [
+                    [
+                        'BRANCHID' => 1,
+                        'Transaction_ID' => $transactionId,
+                        'Item_Number' => $itemNumber,
+                        'Item_Type' => 2,
+                        'Tax_ID' => 1,
+                        'Item_Description' => substr($itemDescription, 0, 20),
+                        'Item_Price' => (float) $pump['Price'],
+                        'Item_Quantity' => (float) $pump['Volume'],
+                        'Item_Value' => (float) $pump['Amount'],
+                        'Item_ID' => 0,
+                        'Item_Tax_Amount' => 0,
+                        'Item_Discount_Total' => null,
+                        'is_tax_exempt_item' => null,
+                        'is_zero_rated_tax_item' => null,
+                        'Item_DB_Price' => null,
+                        'Original_Item_Value' => null,
+                        'GC_Number' => null,
+                        'discount_preset_id' => null,
+                    ]
+                ],
+                'SiteTransactions_Items_Action' => 'insert'
+            ];
+
+
+            // Log the transaction data before sending it to the external API
+            Log::info('Sending transaction data to external API', ['transactionData' => $transactionData]);
+
+
+            // Send the serialized transaction data to an external API
+            try {
+                $externalResponse = Http::post('http://172.16.12.111:8014/syncSiteTransactions', [
+                    'transaction' => $transactionData,
+                ]);
+
+                if ($externalResponse->failed()) {
+                    Log::error('Failed to send transaction data to external API', [
+                        'response' => $externalResponse->body(),
+                    ]);
+                }
+            } catch (\Exception $e) {
+                Log::error('Exception occurred while sending transaction data to external API', [
+                    'exception' => $e->getMessage(),
+                ]);
+            }
+
+            return response()->json([
+                'message' => 'Transaction saved successfully',
+                'transaction' => $transaction->Transaction_ID,
+            ], 201);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Transaction save failed: ' . $e->getMessage());
+
+            return response()->json(['error' => 'Failed to save transaction'], 500);
+        }
     }
 
     public function init($connector_type, $connector_descriptor, $connector_port = 9100)

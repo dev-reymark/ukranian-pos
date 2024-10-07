@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ElectricJournal;
+use App\Models\Period;
 use Illuminate\Http\Request;
 use App\Models\Transaction;
 use App\Models\TransactionItem;
@@ -49,6 +50,17 @@ class TransactionController extends Controller
             return response()->json(['error' => 'Cashier not authenticated'], 401);
         }
 
+        // Fetch the active shift period for the cashier
+        $periodController = new PeriodController();
+        $period = new Period();
+        $periodResponse = $periodController->getCshrActShiftPeriod($request, $period);
+        if ($periodResponse->getData()->statusCode !== 1) {
+            return response()->json(['error' => 'Failed to retrieve active period'], 500);
+        }
+
+        $activePeriod = $periodResponse->getData()->data; // Assuming this returns the period object
+        $periodID = $activePeriod->Period_ID; // Fetch the actual Period_ID
+
         try {
             DB::beginTransaction();
 
@@ -63,7 +75,7 @@ class TransactionController extends Controller
                 'POS_ID' => 1,
                 'Transaction_Number' => 1,
                 'Transaction_Date' => now(),
-                'Period_ID' => 1,
+                'Period_ID' => $periodID,
                 'Cashier_ID' => $cashier->Cashier_ID,
                 'BIR_Trans_Number' => $newBIRTransNumber,
             ]);

@@ -7,11 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class Finalisation extends Model
 {
-    
+
     protected $table = 'Finalisations';
 
-    protected $primaryKey = 'MOP_ID'; 
-    
+    protected $primaryKey = 'MOP_ID';
+
     protected $fillable = [
         'MOP_ID',
         'MOP_Name',

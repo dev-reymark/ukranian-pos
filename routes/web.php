@@ -12,6 +12,8 @@ use App\Http\Controllers\PrinterController;
 use App\Http\Controllers\TestController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\ElectricJournalController;
+use App\Http\Controllers\PeriodController;
+use App\Models\HoseHistory;
 
 // Public Routes
 Route::get('/', function () {
@@ -75,8 +77,36 @@ Route::middleware('auth:cashier')->group(function () {
 
     // DiscountController
     Route::get('/get-discount', [DiscountController::class, 'getDiscount']);
+
+    // PeriodController
+    Route::get('/period', [PeriodController::class, 'getCshrActShiftPeriod']);
+    Route::post('/close-shift', [PeriodController::class, 'closePeriod']);
+    Route::get('/get-all-period', [PeriodController::class, 'getAllPeriod']);
+    Route::get('/get-report-data', [PeriodController::class, 'getPeriodReport']);
 });
 
 Route::get('/test-print', [TestController::class, 'testPrint']);
 Route::get('/getitemstype', [TestController::class, 'getItemtype']);
 Route::get('/test-job', [TestController::class, 'dispatchJob']);
+
+// Route::get('/fuel-sales-discount/{periodID}', function ($periodID) {
+//     $hoseHistory = new HoseHistory();
+//     $result = $hoseHistory->getFuelSalesDisc($periodID);
+
+//     if ($result) {
+//         return response()->json($result);
+//     }
+
+//     return response()->json(['message' => 'No data found for this period.'], 404);
+// });
+
+// Route::get('/fuel-sales/{periodID}', function ($periodID) {
+//     $hoseHistory = new HoseHistory();
+//     $fuelSales = $hoseHistory->getFuelSales($periodID);
+
+//     if ($fuelSales) {
+//         return response()->json($fuelSales); // Return the result as JSON
+//     }
+
+//     return response()->json(['message' => 'No data found for this period.'], 404);
+// });

@@ -60,4 +60,9 @@ class Transaction extends Model
     {
         return $this->hasOne(ElectricJournal::class, 'Transaction_ID', 'Transaction_ID');
     }
+
+    public function period()
+    {
+        return $this->belongsTo(Period::class, 'Period_ID', 'Period_ID');
+    }
 }

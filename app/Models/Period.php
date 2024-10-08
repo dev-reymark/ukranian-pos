@@ -80,7 +80,6 @@ class Period extends Model
 
     public function getPeriodReport($periodID, $posID)
     {
-        // Fetch period details using the model's method
         $periodDetails = $this->getPeriodDetails($periodID);
 
         if (!$periodDetails) {
@@ -97,16 +96,16 @@ class Period extends Model
         $depTaxExempt = (new DepartmentHistory)->getDepartmentTaxExempt($periodID);
         $gradeTaxExempt = (new PosGradeHistory)->getGradeTaxExempt($periodID);
         $taxHistory = (new TaxHistory)->getTaxHistoryByPeriodID($periodID);
-        // $deptDiscounts = $this->Department_History_DB->getDepartmentDiscounts($periodID);
-        // $manualFuelSalesDisc = $this->Manual_Hose_History_DB->getFuelDiscount($periodID);
-        // $fuelSalesDisc = $this->Hose_History_DB->getFuelSalesDisc($periodID);
-        // $discountTotal = $this->Discount_History_DB->getDiscountTotal($periodID);
-        // $depRefund = $this->Department_History_DB->getDepartmentRefund($periodID);
-        // $transHourData = $this->Transaction_DB->getTransHistHourData($periodID);
-        // $hoseHistData = $this->Hose_History_DB->getHoseHistData($periodID);
-        // $tankHistData = $this->Tank_History_DB->getTankHistData($periodID);
-        // $attendantDeliveries = $this->Transaction_DB->getAttendantDeliveries($periodID);
-        // $vehicleReports = $this->Transaction_Item_DB->getVehicleCountReport($periodID);
+        $deptDiscounts = (new DepartmentHistory)->getDepartmentDiscounts($periodID);
+        $manualFuelSalesDisc = (new ManualHoseHistory)->getFuelDiscount($periodID);
+        $fuelSalesDisc = (new HoseHistory)->getFuelSalesDisc($periodID);
+        $discountTotal = (new DiscountHistory)->getDiscountTotal($periodID);
+        $depRefund = (new DepartmentHistory)->getDepartmentRefund($periodID);
+        $transHourData = (new Transaction)->getTransHistHourData($periodID);
+        $hoseHistData = (new HoseHistory)->getHoseHistData($periodID);
+        $tankHistData = (new TankHistory)->getTankHistData($periodID);
+        $attendantDeliveries = (new Transaction)->getAttendantDeliveries($periodID);
+        $vehicleReports = (new TransactionItem)->getVehicleCountReport($periodID);
 
         // Prepare data for response
         $data = [
@@ -119,19 +118,19 @@ class Period extends Model
             "manualFuelSales" => $manualFuelSales,
             "deptTaxExempt" => $depTaxExempt,
             "gradeTaxExempt" => $gradeTaxExempt,
-            // "deliveryTaxExempt" => $gradeTaxExempt,
+            "deliveryTaxExempt" => $gradeTaxExempt,
             "taxHistory" => $taxHistory,
-            // "deptDiscounts" => $deptDiscounts,
-            // "manualFuelSalesDisc" => $manualFuelSalesDisc,
-            // "fuelSalesDisc" => $fuelSalesDisc,
-            // "discountTotal" => $discountTotal,
-            // "depRefund" => $depRefund,
-            // "transHourData" => $transHourData,
-            // "hoseHistData" => $hoseHistData,
-            // "tankHistData" => $tankHistData,
+            "deptDiscounts" => $deptDiscounts,
+            "manualFuelSalesDisc" => $manualFuelSalesDisc,
+            "fuelSalesDisc" => $fuelSalesDisc,
+            "discountTotal" => $discountTotal,
+            "depRefund" => $depRefund,
+            "transHourData" => $transHourData,
+            "hoseHistData" => $hoseHistData,
+            "tankHistData" => $tankHistData,
             "transNums" => $transNums,
-            // "attendantDeliveries" => $attendantDeliveries,
-            // "vehicleCountReport" => $vehicleReports,
+            "attendantDeliveries" => $attendantDeliveries,
+            "vehicleCountReport" => $vehicleReports,
         ];
 
         return ["result" => 1, "message" => "Success", "data" => $data];
@@ -149,4 +148,5 @@ class Period extends Model
 
         return $result;
     }
+    
 }

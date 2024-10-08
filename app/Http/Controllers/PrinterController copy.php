@@ -104,6 +104,7 @@ class PrinterController extends Controller
         }
     }
 
+
     public function printData(Request $request)
     {
         try {
@@ -129,75 +130,5 @@ class PrinterController extends Controller
         }
 
         return response()->json(['status' => 'success', 'message' => 'Print job completed successfully'], 200);
-    }
-
-
-    // public function printData(Request $request)
-    // {
-    //     try {
-    //         // Initialize the printer
-    //         $this->init(
-    //             config('receiptprinter.connector_type'),
-    //             config('receiptprinter.connector_descriptor')
-    //         );
-
-    //         // Format the data to be printed
-    //         $cashDrawReport = $request->input('data');
-
-    //         // Optional: Set any additional formatting
-    //         $this->printer->setJustification(Printer::JUSTIFY_LEFT);
-    //         $this->printer->setTextSize(1, 1); // Standard size
-
-    //         // Print the cash draw data
-    //         $this->printer->text($cashDrawReport . "\n");
-
-    //         // Cut the receipt after printing
-    //         $this->printer->cut();
-    //     } catch (Exception $e) {
-    //         // Return error response if printing fails
-    //         return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
-    //     } finally {
-    //         // Ensure the printer is closed in all cases
-    //         if (isset($this->printer)) {
-    //             $this->printer->close();
-    //         }
-    //     }
-
-    //     return response()->json(['status' => 'success', 'message' => 'Print job completed successfully'], 200);
-    // }
-
-    public function displayInNotepad(Request $request)
-    {
-        try {
-            // Retrieve the cash draw data from the request
-            $cashDrawReport = $request->input('data');
-
-            // Define the file path (ensure this path is writable)
-            $filePath = storage_path('app/public/cash_draw_report.txt');
-
-            // Write the cash draw data to the file
-            file_put_contents($filePath, $cashDrawReport);
-
-            // Check if the OS is Windows and open the file in Notepad
-            if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-                // Command to open the file in Notepad
-                exec("notepad.exe " . escapeshellarg($filePath));
-            } else {
-                // For non-Windows systems, you could use a different command to open the text file
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Notepad is only available on Windows.'
-                ], 400);
-            }
-
-            // Return success response
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Cash draw report opened in Notepad for testing.',
-            ], 200);
-        } catch (Exception $e) {
-            // Return error response if something goes wrong
-            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
-        }
     }
 }

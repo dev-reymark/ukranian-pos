@@ -139,4 +139,32 @@ class HoseHistory extends Model
 
         return false;
     }
+
+    public function getHoseHistData($periodID)
+    {
+        return DB::table('Hose_History')
+            ->select(
+                'Hose_History.Hose_ID as hoseID',
+                'Hose_number as hoseNum',
+                DB::raw('LTRIM(RTRIM(Grade_Name)) as gradeName'),
+                'Hoses.Pump_ID as pumpID',
+                DB::raw('LTRIM(RTRIM(Pump_Name)) as pumpName'),
+                'Logical_Number as logicalNum',
+                'Period_ID as periodID',
+                'Open_Meter_Value as openMeterVal',
+                'Open_Meter_Volume as openMeterVol',
+                'Close_Meter_Value as closeMeterVal',
+                'Close_Meter_Volume as closeMeterVol',
+                DB::raw('(Close_Meter_Value - Open_Meter_Value) as postpayVal'),
+                DB::raw('(Close_Meter_Volume - Open_Meter_Volume) as postpayVol'),
+                'Driveoffs_Value as driveoffVal',
+                'Driveoffs_Volume as driveoffVol',
+                'Test_Del_Volume as testDelVol'
+            )
+            ->join('Hoses', 'Hoses.Hose_ID', '=', 'Hose_History.Hose_ID')
+            ->join('Pumps', 'Pumps.Pump_ID', '=', 'Hoses.Pump_ID')
+            ->join('Grades', 'Grades.Grade_ID', '=', 'Hoses.Grade_ID')
+            ->where('Period_ID', $periodID)
+            ->get();
+    }
 }

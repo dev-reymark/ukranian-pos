@@ -72,4 +72,67 @@ class DepartmentHistory extends Model
 
         return $deptTaxArr;
     }
+
+    public function getDepartmentDiscounts($periodID)
+    {
+        // Query the Department_History table and join with the Departments table
+        $depDisc = DB::table('Department_History')
+            ->where('Department_History.Period_ID', $periodID)
+            ->leftJoin('Departments', 'Departments.Department_ID', '=', 'Department_History.Department_ID')
+            ->select('Departments.Dept_Name', 'Department_History.Dept_Qty_Disc', 'Department_History.Dept_Val_Disc')
+            ->get();
+
+        // Check if any results were found
+        $listLength = $depDisc->count();
+        if ($listLength <= 0) {
+            return false;
+        }
+
+        // Initialize an array to hold the department discounts
+        $depDiscArr = [];
+
+        // Loop through each result and format the data
+        foreach ($depDisc as $disc) {
+            $depDiscTemp = [
+                'depName' => trim($disc->Dept_Name),
+                'qty' => abs($disc->Dept_Qty_Disc),
+                'val' => $disc->Dept_Val_Disc,
+            ];
+
+            array_push($depDiscArr, $depDiscTemp);
+        }
+
+        return $depDiscArr;
+    }
+
+    public function getDepartmentRefund($periodID)
+    {
+        // Query to get the department refunds
+        $depRef = DB::table('Department_History')
+            ->where('Department_History.Period_ID', $periodID)
+            ->leftJoin('Departments', 'Departments.Department_ID', '=', 'Department_History.Department_ID')
+            ->select('Departments.Dept_Name', 'Department_History.Dept_Qty_Item_Ref', 'Department_History.Dept_Val_Item_Ref')
+            ->get();
+
+        // Check if the result is not empty
+        if ($depRef->isEmpty()) {
+            return false;
+        }
+
+        // Initialize an array to hold department refund data
+        $depRefArr = [];
+
+        // Loop through each result and format the data
+        foreach ($depRef as $ref) {
+            $depRefTemp = [
+                'depName' => trim($ref->Dept_Name),
+                'qty' => $ref->Dept_Qty_Item_Ref,
+                'val' => $ref->Dept_Val_Item_Ref
+            ];
+
+            array_push($depRefArr, $depRefTemp);
+        }
+
+        return $depRefArr;
+    }
 }

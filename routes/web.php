@@ -13,6 +13,7 @@ use App\Http\Controllers\TestController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\ElectricJournalController;
 use App\Http\Controllers\PeriodController;
+use App\Http\Controllers\ReportController;
 use App\Models\HoseHistory;
 
 // Public Routes
@@ -70,7 +71,9 @@ Route::middleware('auth:cashier')->group(function () {
     // Printer Controller
     Route::get('/printer-status', [PrinterController::class, 'checkPrinterStatus']);
     Route::post('/print-data', [PrinterController::class, 'printData']);
-    Route::get('/open-cash-drawer', [PrinterController::class, 'openCashDrawer']);
+    Route::get('/open-cash-drawer', [PrinterController::class, 'openCashDrawer'])->name('open-cash-drawer');
+    Route::post('/print-cash-draw', [PrinterController::class, 'printData']);
+    Route::post('/display-in-notepad', [PrinterController::class, 'displayInNotepad']);
 
     // Electronic Journal Controller
     Route::get('/get-journals', [ElectricJournalController::class, 'getJournal']);
@@ -83,6 +86,11 @@ Route::middleware('auth:cashier')->group(function () {
     Route::post('/close-shift', [PeriodController::class, 'closePeriod']);
     Route::get('/get-all-period', [PeriodController::class, 'getAllPeriod']);
     Route::get('/get-report-data', [PeriodController::class, 'getPeriodReport']);
+    Route::post('/close-cash-draw', [PeriodController::class, 'closeCDrawPeriod']);
+
+    // Report Controller
+    Route::get('/get-all-cash-draw', [ReportController::class, 'getAllCashDrawByPosID']);
+    Route::get('/get-cash-draw-by-period', [ReportController::class, 'getCDrawHistByCDPeriod']);
 });
 
 Route::get('/test-print', [TestController::class, 'testPrint']);

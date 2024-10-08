@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CashDrawPeriod;
 use App\Models\Period;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class PeriodController extends Controller
@@ -46,18 +48,63 @@ class PeriodController extends Controller
         // Call the closePeriod method in Period model
         $returnCloseData = $period->closePeriod($periodType);
 
+        // Check if the close period operation failed
         if (!$returnCloseData['result']) {
             return response()->json([
                 'statusCode' => 0,
-                'statusDescription' => 'Failed to close period'
+                'statusDescription' => 'Failed to close period',
             ]);
         }
 
+        // Prepare the data for the external API
+        $closePeriodData = [
+            'SITEPERIOD' => [
+                [
+                    'posID' => $posID,
+                    'periodType' => $periodType,
+                    // Add other necessary data here
+                ],
+            ],
+            'SitePeriod_Action' => 'insert',
+        ];
+
+        // Log the transaction data before sending it to the external API
+        Log::info('Sending transaction data to external API', ['transactionData' => $closePeriodData]);
+
+        // Send the serialized transaction data to an external API
+        try {
+            $externalResponse = Http::post('http://172.16.12.111:8014/syncSiteTransactions', [
+                'transaction' => $closePeriodData,
+            ]);
+
+            if ($externalResponse->failed()) {
+                Log::error('Failed to send transaction data to external API', [
+                    'response' => $externalResponse->body(),
+                ]);
+
+                return response()->json([
+                    'statusCode' => 0,
+                    'statusDescription' => 'Failed to send data to external API',
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error('Exception occurred while sending transaction data to external API', [
+                'exception' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'statusCode' => 0,
+                'statusDescription' => 'Error while sending data to external API',
+            ]);
+        }
+
+        // Return success response after external API call
         return response()->json([
             'statusCode' => 1,
-            'statusDescription' => 'Period closed successfully'
+            'statusDescription' => 'Period closed and data sent successfully',
         ]);
     }
+
 
     public function getAllPeriod(Request $request, Period $period)
     {
@@ -115,6 +162,44 @@ class PeriodController extends Controller
         return response()->json([
             "statusCode" => 0,
             "statusDescription" => "Failed to retrieve period report"
+        ]);
+    }
+
+    public function closeCDrawPeriod(Request $request)
+    {
+        // Validate incoming request data
+        $request->validate([
+            'posID' => 'required|integer',
+        ]);
+
+        // Get the logged-in cashier
+        $cashier = Auth::user();
+
+        if (!$cashier) {
+            return response()->json(['error' => 'Cashier not authenticated'], 401);
+        }
+
+        $cashierID = $cashier->Cashier_ID; // Get the cashier ID from the authenticated user
+        $posID = $request->input('posID');
+
+        // Call the closeCashDraw method in the CashDrawPeriod model
+        $returnData = (new CashDrawPeriod())->closeCashDraw($cashierID, $posID);
+
+        if (!$returnData['result']) {
+            return response()->json([
+                "statusCode" => 0,
+                "statusDescription" => $returnData['message'], // Provide the error message from the model
+            ]);
+        }
+
+        // Directly call openCashDrawer method
+        $printerController = new PrinterController();
+        $openCashDrawerResponse = $printerController->openCashDrawer(new Request());
+
+        return response()->json([
+            "statusCode" => 1,
+            "statusDescription" => "Success",
+            "drawerStatus" => $openCashDrawerResponse->getOriginalContent() // Include drawer status in response
         ]);
     }
 }

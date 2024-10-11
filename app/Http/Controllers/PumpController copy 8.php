@@ -262,15 +262,15 @@ class PumpController extends Controller
                             ]
                         );
 
-                        // // Ensure the price profile is updated
-                        // PriceProfile::updateOrCreate(
-                        //     ['Price_Profile_ID' => $gradeId],
-                        //     [
-                        //         'Price_Profile_Name' => $fuelGradesMap[$gradeId]['Name'] ?? 'Unknown',
-                        //         'Grade_Price' => $fuelGradesMap[$gradeId]['Price'] ?? 0,
-                        //         'Parent_Grade_ID' => $gradeId,
-                        //     ]
-                        // );
+                        // Ensure the price profile is updated
+                        PriceProfile::updateOrCreate(
+                            ['Price_Profile_ID' => $gradeId],
+                            [
+                                'Price_Profile_Name' => $fuelGradesMap[$gradeId]['Name'] ?? 'Unknown',
+                                'Grade_Price' => $fuelGradesMap[$gradeId]['Price'] ?? 0,
+                                'Parent_Grade_ID' => $gradeId,
+                            ]
+                        );
 
                         // Add the nozzle information
                         $nozzles[] = [

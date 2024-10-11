@@ -10,9 +10,11 @@ class Tank extends Model
     use HasFactory;
 
     protected $table = 'Tanks';
+    public $timestamps = false;
+    protected $primaryKey = 'Tank_ID';
+    public $incrementing = true;
 
     protected $fillable = [
-        'Tank_ID',
         'Grade_ID',
         'Tank_Name',
         'Tank_Number',

@@ -82,7 +82,7 @@ class PrinterController extends Controller
         return response()->json($response, 200);
     }
 
-    public function openCashDrawer()
+    public function openCashDrawer(Request $request)
     {
         try {
             // Initialize the printer
@@ -103,160 +103,6 @@ class PrinterController extends Controller
             }
         }
     }
-
-    public function printReceiptLayout(Request $request)
-    {
-        try {
-            // Initialize the printer
-            $this->init(
-                config('receiptprinter.connector_type'),
-                config('receiptprinter.connector_descriptor')
-            );
-
-            // Create an instance of LookUpController and call getReceiptLayout
-            $lookUpController = new LookUpController();
-            $receiptLayoutResponse = $lookUpController->getReceiptLayout();
-
-            // Check if the response is successful
-            $receiptLayout = json_decode($receiptLayoutResponse->content(), true); // Decode the JSON response
-
-            if ($receiptLayout['statusCode'] === 0) {
-                return response()->json(['status' => 'error', 'message' => 'Failed to retrieve receipt layout'], 400);
-            }
-
-            // Extract receipt layout data
-            $data = $receiptLayout['data'];
-
-            // Format and print the receipt layout
-            $this->printer->setJustification(Printer::JUSTIFY_CENTER);
-            $this->printer->text("Receipt: " . $data['Receipt_Name'] . "\n");
-            $this->printer->text($data['Receipt_Header_L1'] . "\n");
-            $this->printer->text($data['Receipt_Header_L2'] . "\n");
-            $this->printer->text($data['Receipt_Header_L3'] . "\n");
-            $this->printer->text($data['Receipt_Header_L4'] . "\n");
-            $this->printer->text($data['Receipt_Header_L5'] . "\n");
-            $this->printer->text("\n");
-            $this->printer->text($data['Receipt_Footer_L1'] . "\n");
-            $this->printer->text($data['Receipt_Footer_L2'] . "\n");
-            $this->printer->text($data['Receipt_Footer_L3'] . "\n");
-            $this->printer->text($data['Receipt_Footer_L4'] . "\n");
-            $this->printer->text($data['Receipt_Footer_L5'] . "\n");
-            $this->printer->cut();
-        } catch (Exception $e) {
-            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
-        } finally {
-            if (isset($this->printer)) {
-                $this->printer->close();
-            }
-        }
-
-        return response()->json(['status' => 'success', 'message' => 'Receipt printed successfully'], 200);
-    }
-
-    public function printReceipt()
-    {
-        try {
-            // Get receipt layout
-            $lookUpController = new LookUpController();
-            $receiptLayoutResponse = $lookUpController->getReceiptLayout();
-
-            // Decode the JSON response from getReceiptLayout
-            $receiptLayout = json_decode($receiptLayoutResponse->content(), true);
-
-            // Check if the response contains valid data
-            if (!isset($receiptLayout['data'])) {
-                return response()->json(['status' => 'error', 'message' => 'Failed to retrieve receipt layout'], 400);
-            }
-
-            $receipt = $receiptLayout['data'];
-
-            // Initialize the receipt printer
-            $this->init(
-                config('receiptprinter.connector_type'),
-                config('receiptprinter.connector_descriptor')
-            );
-
-            // Ensure headers and footers are set; fallback to empty string if null
-            $headerLines = [
-                $receipt['Receipt_Header_L1'] ?? '',
-                $receipt['Receipt_Header_L2'] ?? '',
-                $receipt['Receipt_Header_L3'] ?? ''
-            ];
-
-            $footerLines = [
-                $receipt['Receipt_Footer_L1'] ?? '',
-                $receipt['Receipt_Footer_L2'] ?? '',
-                $receipt['Receipt_Footer_L3'] ?? '',
-                $receipt['Receipt_Footer_L4'] ?? ''
-            ];
-
-            // Collect receipt content in a variable
-            $receiptContent = '';
-
-            // Print header lines
-            $this->printer->setJustification(Printer::JUSTIFY_CENTER);
-            foreach ($headerLines as $line) {
-                if (!empty($line)) {
-                    $lines = explode('\\n', $line);
-                    foreach ($lines as $textLine) {
-                        $this->printer->text(trim($textLine) . "\n");
-                        $receiptContent .= trim($textLine) . "\n";
-                    }
-                }
-            }
-            $this->printer->setEmphasis(false);
-            $this->printer->feed(1);
-            $receiptContent .= "\n";
-
-            // Print invoice header
-            $this->printer->setJustification(Printer::JUSTIFY_CENTER);
-            $this->printer->text("*** SALES INVOICE ***\n");
-            $this->printer->feed(1);
-            $receiptContent .= "*** SALES INVOICE ***\n\n";
-
-            // Reset justification to left before printing items
-            $this->printer->setJustification(Printer::JUSTIFY_LEFT);
-
-            $this->printer->feed(1);
-            $receiptContent .= "\n";
-
-            // Print footer lines
-            $this->printer->setJustification(Printer::JUSTIFY_CENTER);
-            foreach ($footerLines as $index => $line) {
-                if (!empty($line)) {
-                    $lines = explode('\\n', $line);
-                    foreach ($lines as $textLine) {
-                        $this->printer->text(trim($textLine) . "\n");
-                        $receiptContent .= trim($textLine) . "\n";
-                    }
-
-                    if ($index === 0) {
-                        $this->printer->feed(1);
-                        $receiptContent .= "\n";
-                    }
-                }
-            }
-
-            // Cut the receipt
-            $this->printer->cut();
-
-            // Open the cash drawer
-            $this->openCashDrawer();
-
-            // Close the printer connection
-            $this->printer->close();
-
-            return response()->json(['status' => 'success', 'message' => 'Receipt printed successfully'], 200);
-        } catch (Exception $e) {
-            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
-        } finally {
-            if (isset($this->printer)) {
-                $this->printer->close();
-            }
-        }
-    }
-
-
 
     public function printData(Request $request)
     {
@@ -284,6 +130,41 @@ class PrinterController extends Controller
 
         return response()->json(['status' => 'success', 'message' => 'Print job completed successfully'], 200);
     }
+
+
+    // public function printData(Request $request)
+    // {
+    //     try {
+    //         // Initialize the printer
+    //         $this->init(
+    //             config('receiptprinter.connector_type'),
+    //             config('receiptprinter.connector_descriptor')
+    //         );
+
+    //         // Format the data to be printed
+    //         $cashDrawReport = $request->input('data');
+
+    //         // Optional: Set any additional formatting
+    //         $this->printer->setJustification(Printer::JUSTIFY_LEFT);
+    //         $this->printer->setTextSize(1, 1); // Standard size
+
+    //         // Print the cash draw data
+    //         $this->printer->text($cashDrawReport . "\n");
+
+    //         // Cut the receipt after printing
+    //         $this->printer->cut();
+    //     } catch (Exception $e) {
+    //         // Return error response if printing fails
+    //         return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+    //     } finally {
+    //         // Ensure the printer is closed in all cases
+    //         if (isset($this->printer)) {
+    //             $this->printer->close();
+    //         }
+    //     }
+
+    //     return response()->json(['status' => 'success', 'message' => 'Print job completed successfully'], 200);
+    // }
 
     public function displayInNotepad(Request $request)
     {

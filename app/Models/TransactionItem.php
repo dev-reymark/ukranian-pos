@@ -86,4 +86,80 @@ class TransactionItem extends Model
 
         return $finalResult->isEmpty() ? false : $finalResult;
     }
+
+    public function callTransItemsSP($data)
+    {
+        DB::beginTransaction();
+
+        try {
+            $result = DB::statement(
+                "EXEC SP_LOG_TRANSACTION_ITEM 
+            @TRANS_ID = ?, 
+            @ITEM_NUMBER = ?, 
+            @ITEM_TAX_ID = ?, 
+            @ITEM_TYPE = ?, 
+            @ITEM_DESC = ?, 
+            @ITEM_PRICE = ?, 
+            @ITEM_QTY = ?, 
+            @ITEM_VALUE = ?, 
+            @ITEM_ID = ?, 
+            @ITEM_TAX_AMOUNT = ?, 
+            @DELIVERY_ID = ?, 
+            @original_item_value_pre_tax_change = ?, 
+            @is_tax_exempt_item = ?, 
+            @is_zero_rated_tax_item = ?, 
+            @pos_id = ?, 
+            @ITEM_DISCOUNT_TOTAL = ?, 
+            @discount_code_type = ?, 
+            @gc_number = ?",
+                [
+                    $data['TRANS_ID'],
+                    $data['ITEM_NUMBER'],
+                    $data['ITEM_TAX_ID'],
+                    $data['ITEM_TYPE'],
+                    $data['ITEM_DESC'],
+                    $data['ITEM_PRICE'],
+                    $data['ITEM_QTY'],
+                    $data['ITEM_VALUE'],
+                    $data['ITEM_ID'],
+                    $data['ITEM_TAX_AMOUNT'],
+                    $data['DELIVERY_ID'],
+                    $data['original_item_value_pre_tax_change'],
+                    $data['is_tax_exempt_item'],
+                    $data['is_zero_rated_tax_item'],
+                    $data['posID'],
+                    $data['itemDiscTotal'],
+                    $data['itemDiscCodeType'],
+                    $data['gcNumber'],
+                ]
+            );
+
+            DB::commit();
+            return $result;
+        } catch (\Exception $e) {
+            DB::rollback();
+            throw $e; // or handle the exception as needed
+        }
+    }
+
+    public function getTransItemData($transID)
+    {
+        return DB::table($this->table)
+            ->select([
+                'Transaction_ID as transID',
+                'Item_Type as itemType',
+                'Tax_ID as taxID',
+                DB::raw("RTRIM(LTRIM(Item_Description)) as itemDesc"),
+                'Item_Price as itemPrice',
+                'Item_Quantity as itemQty',
+                'Item_Value as itemVal',
+                'Item_ID as itemID',
+                'Item_Tax_Amount as itemTaxAmt',
+                'Item_Discount_Total as itemDiscTotal',
+                'is_tax_exempt_item as isTaxExemptItem',
+                'is_zero_rated_tax_item as isZeroRatedTaxItem',
+            ])
+            ->where('Transaction_ID', $transID)
+            ->get();
+    }
 }

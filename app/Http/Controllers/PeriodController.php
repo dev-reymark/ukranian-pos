@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\CashDrawPeriod;
 use App\Models\Period;
+use DateTime;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
@@ -56,16 +57,63 @@ class PeriodController extends Controller
             ]);
         }
 
+        // Log the returnCloseData to check its contents
+        Log::info('Return Close Data:', $returnCloseData);
+
+        // Convert period_create_ts and period_close_dt to Clarion date and time
+        $periodDetails = $returnCloseData['periodDetails'];
+
+        if ($periodDetails) {
+            $periodCreateTs = new DateTime($periodDetails['Period_Create_TS']);
+            $periodCloseDt = new DateTime($periodDetails['Period_Close_DT']);
+
+            // Clarion epoch start date (1800-12-28)
+            $clarionEpoch = new DateTime('1800-12-28');
+            $clarionEpochTimestamp = $clarionEpoch->getTimestamp();
+
+            // Convert Period_Create_TS to Clarion date and time
+            $periodCreateClarionDate = $this->convertToClarionDate($periodCreateTs, $clarionEpochTimestamp);
+            $periodCreateClarionTime = $this->convertToClarionTime($periodCreateTs);
+
+            // Convert Period_Close_DT to Clarion date and time
+            $periodCloseClarionDate = $this->convertToClarionDate($periodCloseDt, $clarionEpochTimestamp);
+            $periodCloseClarionTime = $this->convertToClarionTime($periodCloseDt);
+        }
+
         // Prepare the data for the external API
         $closePeriodData = [
-            'SITEPERIOD' => [
+            'SitePeriods' => [
                 [
-                    'posID' => $posID,
-                    'periodType' => $periodType,
-                    // Add other necessary data here
-                ],
+                    'branchid' => 1,
+                    'period_id' => $periodDetails['Period_ID'],
+                    'period_create_ts' => $periodDetails['Period_Create_TS'],
+                    'period_create_ts_group' => [
+                        'period_create_ts_date' => $periodCreateClarionDate,
+                        'period_create_ts_time' => $periodCreateClarionTime,
+                    ],
+                    'period_type' => $periodType,
+                    'period_close_dt' => $periodDetails['Period_Close_DT'],
+                    'period_close_dt_group' => [
+                        'period_close_dt_date' => $periodCloseClarionDate,
+                        'period_close_dt_time' => $periodCloseClarionTime,
+                    ],
+                    'period_state' => $periodDetails['Period_State'],
+                    'period_number' => $periodDetails['Period_Number'],
+                    'shift_number' => $periodDetails['Shift_number'],
+                    'tank_dips_entered' => $periodDetails['Tank_Dips_Entered'],
+                    'tank_drops_entered' => $periodDetails['Tank_Drops_Entered'],
+                    'pump_meter_entered' => $periodDetails['Pump_Meter_Entered'],
+                    'exported' => $periodDetails['Exported'],
+                    'export_required' => $periodDetails['Export_Required'],
+                    'wetstock_out_of_variance' => $periodDetails['WetStock_Out_Of_Variance'],
+                    'wetstock_approval_id' => $periodDetails['WetStock_Approval_ID'],
+                    'beginningsi' => $periodDetails['BeginningSI'],
+                    'endingsi' => $periodDetails['EndingSI'],
+                ]
             ],
-            'SitePeriod_Action' => 'insert',
+            'SitePeriods_Action' => 'insert',
+            'skiprecords' => 0,
+            'maxrecords' => 100,
         ];
 
         // Log the transaction data before sending it to the external API
@@ -73,7 +121,7 @@ class PeriodController extends Controller
 
         // Send the serialized transaction data to an external API
         try {
-            $externalResponse = Http::post('http://172.16.12.111:8014/syncSiteTransactions', [
+            $externalResponse = Http::post('http://172.16.12.111:8014/syncSitePeriods', [
                 'transaction' => $closePeriodData,
             ]);
 
@@ -97,12 +145,36 @@ class PeriodController extends Controller
                 'statusDescription' => 'Error while sending data to external API',
             ]);
         }
+    }
 
-        // Return success response after external API call
-        return response()->json([
-            'statusCode' => 1,
-            'statusDescription' => 'Period closed and data sent successfully',
-        ]);
+    /**
+     * Convert a given DateTime to a Clarion date.
+     */
+    private function convertToClarionDate($dateTime, $clarionEpochTimestamp)
+    {
+        $dateTimeTimestamp = $dateTime->getTimestamp();
+        $clarionDate = floor(($dateTimeTimestamp - $clarionEpochTimestamp) / (60 * 60 * 24)) + 1;
+        return $clarionDate;
+    }
+
+    /**
+     * Convert a given DateTime to a Clarion time.
+     */
+    private function convertToClarionTime($dateTime)
+    {
+        $timePart = $dateTime->format('H:i:s');
+        $timeParts = explode(':', $timePart);
+
+        $hours = isset($timeParts[0]) ? (int) $timeParts[0] : 0;
+        $minutes = isset($timeParts[1]) ? (int) $timeParts[1] : 0;
+        $seconds = isset($timeParts[2]) ? (int) $timeParts[2] : 0;
+
+        // Calculate total seconds since midnight
+        $totalSecondsSinceMidnight = ($hours * 3600) + ($minutes * 60) + $seconds;
+
+        // Convert total seconds into ticks (100 ticks = 1 second)
+        $clarionTime = $totalSecondsSinceMidnight * 100;
+        return $clarionTime;
     }
 
 

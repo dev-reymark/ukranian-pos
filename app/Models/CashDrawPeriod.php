@@ -29,7 +29,7 @@ class CashDrawPeriod extends Model
     {
         $cdrawPeriodID = $this->getActiveCdrwPeriod($cashierID, $posID);
 
-        if (!$cdrawPeriodID) {
+        if ($cdrawPeriodID === false) {
             return ["result" => 0, "message" => "No active cash drawer found"];
         }
 
@@ -193,5 +193,23 @@ class CashDrawPeriod extends Model
                 "CDraw_Close_Date" => $cdraw->CDraw_Close_Date // Ensure this matches your actual column name
             ];
         })->toArray();
+    }
+
+    public function getCashdrawSafedropDetails($cashdrawPeriodID)
+    {
+        $retData = (new CashDrawHistory)->getCashdrawSafedropDetails($cashdrawPeriodID);
+
+        if ($retData) {
+            return [
+                'result' => 1,
+                'message' => 'Success',
+                'data' => $retData->CDraw_Num_Safedrop,
+            ];
+        }
+
+        return [
+            'result' => 0,
+            'message' => 'No safedrop details available',
+        ];
     }
 }

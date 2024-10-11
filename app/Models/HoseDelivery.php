@@ -4,16 +4,19 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class HoseDelivery extends Model
 {
 
     protected $table = 'Hose_Delivery';
-
+    public $timestamps = false;
     protected $primaryKey = 'Delivery_ID';
+    public $incrementing = false;
 
     protected $fillable = [
         'Hose_ID',
+        'Pump_ID',
         'Attendant_ID',
         'Price_Level',
         'Completed_TS',
@@ -43,5 +46,19 @@ class HoseDelivery extends Model
         'Hose_Meter_Value1',
         'Grade1_Price',
         'Grade2_Price',
+        'Is_Sold',
+        'FuelGradeName',
+        'FuelGradePrice',
     ];
+
+    protected $casts = [
+        'Delivery_Volume' => 'float',
+        'Del_Cost_Price' => 'float',
+        'Delivery_Value' => 'float',
+    ];
+
+    public function hose()
+    {
+        return $this->belongsTo(Hose::class, 'Hose_ID', 'Hose_ID');
+    }
 }

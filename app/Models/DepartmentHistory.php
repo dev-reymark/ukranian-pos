@@ -135,4 +135,32 @@ class DepartmentHistory extends Model
 
         return $depRefArr;
     }
+
+    public function logDepDiscountSP($transID, $itemQty, $itemValue, $itemType, $itemID, $itemTaxAmount)
+    {
+        // Start a database transaction
+        DB::beginTransaction();
+
+        try {
+            // Prepare the SQL query to execute the stored procedure
+            $result = DB::select("EXEC sp_log_discount_item @trans_id = ?, @item_qty = ?, @item_value = ?, @item_type = ?, @item_id = ?, @item_tax_amount = ?", [
+                $transID,
+                $itemQty,
+                $itemValue,
+                $itemType,
+                $itemID,
+                $itemTaxAmount,
+            ]);
+
+            // Commit the transaction
+            DB::commit();
+
+            return $result; // Return the result of the stored procedure
+        } catch (\Exception $e) {
+            // Rollback the transaction in case of an error
+            DB::rollback();
+            // You can also log the error or handle it as needed
+            throw $e; // Rethrow the exception after rollback
+        }
+    }
 }

@@ -52,11 +52,15 @@ class Period extends Model
         // Call stored procedure
         $result = $this->closePeriodSP($periodType);
 
+        $periodDetails = $this->where('Period_Type', $periodType)
+            ->orderBy('Period_Close_DT', 'desc')
+            ->first();
+
         if (!$result) {
             return ['result' => 0, 'message' => 'Failed to close period'];
         }
 
-        return ['result' => 1, 'message' => 'Success'];
+        return ['result' => 1, 'message' => 'Success', 'periodDetails' => $periodDetails];
     }
 
     public function closePeriodSP($periodType)
@@ -75,6 +79,16 @@ class Period extends Model
         }
 
         return $query->get();
+    }
+
+    public function getAllActivePeriod()
+    {
+        $results = DB::table($this->table)
+            ->select('Period_ID as periodID')
+            ->where($this->stateCol, 1)
+            ->get(); // Use get() to retrieve all matching records
+
+        return $results->isNotEmpty() ? $results : false; // Return results or false if empty
     }
 
 
@@ -148,5 +162,21 @@ class Period extends Model
 
         return $result;
     }
-    
+
+    public function getActiveShiftPeriod(): ?int
+    {
+        // Define column names
+        $this->idCol = 'Period_ID';
+        $this->typeCol = 'Period_Type';
+        $this->stateCol = 'Period_State';
+
+        // Use Eloquent to find the active shift period
+        $result = $this->where($this->typeCol, 1)
+            ->where($this->stateCol, 1)
+            ->select($this->idCol)
+            ->first(); // Get the first matching record
+
+        // Return Period_ID or null if not found
+        return $result->Period_ID ?? null;
+    }
 }

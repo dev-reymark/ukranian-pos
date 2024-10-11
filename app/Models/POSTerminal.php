@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class POSTerminal extends Model
 {
@@ -39,8 +40,66 @@ class POSTerminal extends Model
         'temp_bir_resetter'
     ];
 
+    private $nonBirTransNumCol = 'Non_BIR_Trans_Number';
+    private $transNumCol = 'POS_Trans_Number';
+    private $birFuelTransNumCol = 'BIR_Fuel_Trans_Number';
+    private $birNonFuelTransNumCol = 'BIR_Non_Fuel_Trans_Number';
+    private $idCol = 'POS_ID';
+
     public function transactions()
     {
         return $this->hasMany(Transaction::class, 'POS_ID', 'POS_ID');
+    }
+
+    public function getTransNumbers(int $posID)
+    {
+        return DB::table($this->table)
+            ->select('POS_Trans_Number', 'BIR_Fuel_Trans_Number', 'BIR_Non_Fuel_Trans_Number')
+            ->where($this->idCol, $posID)
+            ->first() ?: false;
+    }
+
+    public function getNonBirTransNumByPosId(int $posID): int
+    {
+        $result = DB::table($this->table)
+            ->select($this->nonBirTransNumCol)
+            ->where($this->idCol, $posID)
+            ->first();
+
+        return $result->{$this->nonBirTransNumCol} ?? 0;
+    }
+
+    public function updatePOSTransNum(int $transNum, int $posID): bool
+    {
+        return $this->where($this->idCol, $posID)
+            ->update([$this->transNumCol => $transNum]) > 0;
+    }
+
+    public function updateBIRFuelTransNum(int $transNum, int $posID): bool
+    {
+        return $this->where($this->idCol, $posID)
+            ->update([$this->birFuelTransNumCol => $transNum]) > 0;
+    }
+
+    public function updateBIRNonFuelTransNum(int $transNum, int $posID): bool
+    {
+        return $this->where($this->idCol, $posID)
+            ->update([$this->birNonFuelTransNumCol => $transNum]) > 0;
+    }
+
+    public function incrementNonBirTransNumber(int $posID, int $val = 0, int $i = 1): ?int
+    {
+        // Find the POSTerminal record by POS_ID
+        $terminal = $this->find($posID);
+
+        if ($terminal) {
+            // Increment the Non_BIR_Trans_Number
+            $newValue = $val + $i;
+            $terminal->update([$this->nonBirTransNumCol => $newValue]);
+
+            return $newValue; // Return the new value
+        }
+
+        return null; // Return null if the terminal is not found
     }
 }

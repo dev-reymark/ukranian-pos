@@ -415,7 +415,8 @@ export default function ReportsIndex() {
                 onOpenChange={onCloseCashDrawModal}
                 isDismissable={false}
                 hideCloseButton={true}
-                size="2xl"
+                size="3xl"
+                scrollBehavior="inside"
             >
                 <ModalContent>
                     <ModalHeader>
@@ -423,6 +424,7 @@ export default function ReportsIndex() {
                             Cash Draw Report
                         </h1>
                     </ModalHeader>
+                    <Divider />
                     <ModalBody>
                         {cashDrawDetails.length > 0 ? (
                             <Table
@@ -452,12 +454,28 @@ export default function ReportsIndex() {
                                                     }
                                                 </TableCell>
                                                 <TableCell>
-                                                    {
-                                                        cashDrawItem.CDraw_Close_Date
-                                                    }
+                                                    {cashDrawItem.CDraw_Close_Date
+                                                        ? new Date(
+                                                              new Date(
+                                                                  cashDrawItem.CDraw_Close_Date
+                                                              ).getTime() -
+                                                                  new Date(
+                                                                      cashDrawItem.CDraw_Close_Date
+                                                                  ).getTimezoneOffset() *
+                                                                      60000
+                                                          ).toLocaleString([], {
+                                                              year: "numeric",
+                                                              month: "numeric",
+                                                              day: "numeric",
+                                                              hour: "numeric",
+                                                              minute: "numeric",
+                                                              hour12: true,
+                                                          })
+                                                        : "null"}
                                                 </TableCell>
                                                 <TableCell>
-                                                    {cashDrawItem.Cashier_Name}
+                                                    {cashDrawItem.Cashier_Name ||
+                                                        "null"}
                                                 </TableCell>
                                             </TableRow>
                                         )
@@ -477,7 +495,13 @@ export default function ReportsIndex() {
             </Modal>
 
             {/* Modal for selected Cash Draw */}
-            <Modal isOpen={Boolean(selectedCashDrawReport)} size="xl">
+            <Modal
+                isOpen={Boolean(selectedCashDrawReport)}
+                scrollBehavior="inside"
+                size="5xl"
+                isDismissable={false}
+                hideCloseButton={true}
+            >
                 <ModalContent>
                     <ModalHeader className="flex flex-col gap-1">
                         <h1 className="text-xl font-extrabold">
@@ -489,281 +513,322 @@ export default function ReportsIndex() {
                         {selectedCashDrawReport ? (
                             <>
                                 {/* Render Cash Draw Details */}
-                                <div
-                                    style={{
-                                        marginBottom: "1rem",
-                                        textAlign: "left",
-                                    }}
-                                >
-                                    <h3>
-                                        Cashier:{" "}
-                                        {
-                                            selectedCashDrawReport.cdrawDetails
-                                                .Cashier_Name
-                                        }
-                                    </h3>
-                                    <p>
-                                        Period:{" "}
-                                        {
-                                            selectedCashDrawReport.cdrawDetails
-                                                .CDraw_Period_ID
-                                        }
-                                    </p>
-                                    <p>
-                                        Open Date:{" "}
-                                        {
-                                            selectedCashDrawReport.cdrawDetails
-                                                .CDraw_Open_Date
-                                        }
-                                    </p>
-                                    <p>
-                                        Close Date:{" "}
-                                        {
-                                            selectedCashDrawReport.cdrawDetails
-                                                .CDraw_Close_Date
-                                        }
-                                    </p>
+                                <div className="flex justify-between py-3">
+                                    <div className="flex flex-col gap-1">
+                                        <p className="text-lg font-bold">
+                                            Period ID:{" "}
+                                            {
+                                                selectedCashDrawReport
+                                                    .cdrawDetails
+                                                    .CDraw_Period_ID
+                                            }
+                                        </p>
+
+                                        <p className="text-lg font-bold">
+                                            Cashier:{" "}
+                                            {
+                                                selectedCashDrawReport
+                                                    .cdrawDetails.Cashier_Name
+                                            }
+                                        </p>
+                                    </div>
+                                    <div className="flex flex-col gap-1">
+                                        <p className="text-lg font-bold">
+                                            Open Date:{" "}
+                                            {new Date(
+                                                new Date(
+                                                    selectedCashDrawReport.cdrawDetails.CDraw_Open_Date
+                                                ).getTime() -
+                                                    new Date(
+                                                        selectedCashDrawReport.cdrawDetails.CDraw_Open_Date
+                                                    ).getTimezoneOffset() *
+                                                        60000
+                                            ).toLocaleString([], {
+                                                year: "numeric",
+                                                month: "numeric",
+                                                day: "numeric",
+                                                hour: "numeric",
+                                                minute: "numeric",
+                                                hour12: true,
+                                            })}
+                                        </p>
+                                        <p className="text-lg font-bold">
+                                            Close Date:{" "}
+                                            {new Date(
+                                                new Date(
+                                                    selectedCashDrawReport.cdrawDetails.CDraw_Close_Date
+                                                ).getTime() -
+                                                    new Date(
+                                                        selectedCashDrawReport.cdrawDetails.CDraw_Close_Date
+                                                    ).getTimezoneOffset() *
+                                                        60000
+                                            ).toLocaleString([], {
+                                                year: "numeric",
+                                                month: "numeric",
+                                                day: "numeric",
+                                                hour: "numeric",
+                                                minute: "numeric",
+                                                hour12: true,
+                                            })}
+                                        </p>
+                                    </div>
                                 </div>
 
                                 {/* Render Financial History (cdrawFinHistory) */}
-                                {/* <div style={{ marginBottom: "1rem" }}>
-                                    <h4>Financial History</h4>
-                                    <table
-                                        style={{
-                                            width: "100%",
-                                            borderCollapse: "collapse",
-                                        }}
-                                    >
-                                        <thead>
-                                            <tr>
-                                                <th>MOP Name</th>
-                                                <th>Total Amount</th>
-                                                <th>Float</th>
-                                                <th>Num Safe Drops</th>
-                                                <th>Total Safe Drops</th>
-                                                <th>Num Payins</th>
-                                                <th>Total Payins</th>
-                                                <th>Num CashOuts</th>
-                                                <th>Total CashOuts</th>
-                                                <th>Num Refunds</th>
-                                                <th>Total Refunds</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
+                                <div className="space-y-4">
+                                    <p>
+                                        <strong>Financial History</strong>
+                                    </p>
+                                    <Table aria-label="Financial History">
+                                        <TableHeader>
+                                            <TableColumn>MOP Name</TableColumn>
+                                            <TableColumn>
+                                                Total Amount
+                                            </TableColumn>
+                                            <TableColumn>Float</TableColumn>
+                                            <TableColumn>
+                                                Num Safe Drops
+                                            </TableColumn>
+                                            <TableColumn>
+                                                Total Safe Drops
+                                            </TableColumn>
+                                            <TableColumn>
+                                                Num Payins
+                                            </TableColumn>
+                                            <TableColumn>
+                                                Total Payins
+                                            </TableColumn>
+                                            <TableColumn>
+                                                Num CashOuts
+                                            </TableColumn>
+                                            <TableColumn>
+                                                Total CashOuts
+                                            </TableColumn>
+                                            <TableColumn>
+                                                Num Refunds
+                                            </TableColumn>
+                                            <TableColumn>
+                                                Total Refunds
+                                            </TableColumn>
+                                        </TableHeader>
+                                        <TableBody>
                                             {selectedCashDrawReport.cdrawFinHistory.map(
                                                 (finHistory, index) => (
-                                                    <tr key={index}>
-                                                        <td>
+                                                    <TableRow key={index}>
+                                                        <TableCell>
                                                             {
                                                                 finHistory.MOP_Name
                                                             }
-                                                        </td>
-                                                        <td>
+                                                        </TableCell>
+                                                        <TableCell>
                                                             {
                                                                 finHistory.CDraw_Tot_Amount
                                                             }
-                                                        </td>
-                                                        <td>
+                                                        </TableCell>
+                                                        <TableCell>
                                                             {
                                                                 finHistory.CDraw_Float
                                                             }
-                                                        </td>
-                                                        <td>
+                                                        </TableCell>
+                                                        <TableCell>
                                                             {
                                                                 finHistory.CDraw_Num_Safedrop
                                                             }
-                                                        </td>
-                                                        <td>
+                                                        </TableCell>
+                                                        <TableCell>
                                                             {
                                                                 finHistory.CDraw_Tot_Safedrop
                                                             }
-                                                        </td>
-                                                        <td>
+                                                        </TableCell>
+                                                        <TableCell>
                                                             {
                                                                 finHistory.CDraw_Num_Payin
                                                             }
-                                                        </td>
-                                                        <td>
+                                                        </TableCell>
+                                                        <TableCell>
                                                             {
                                                                 finHistory.CDraw_Tot_Payin
                                                             }
-                                                        </td>
-                                                        <td>
+                                                        </TableCell>
+                                                        <TableCell>
                                                             {
                                                                 finHistory.CDraw_Num_CashOut
                                                             }
-                                                        </td>
-                                                        <td>
+                                                        </TableCell>
+                                                        <TableCell>
                                                             {
                                                                 finHistory.CDraw_Tot_CashOut
                                                             }
-                                                        </td>
-                                                        <td>
+                                                        </TableCell>
+                                                        <TableCell>
                                                             {
                                                                 finHistory.CDraw_Num_Refund
                                                             }
-                                                        </td>
-                                                        <td>
+                                                        </TableCell>
+                                                        <TableCell>
                                                             {
                                                                 finHistory.CDraw_Tot_Refund
                                                             }
-                                                        </td>
-                                                    </tr>
+                                                        </TableCell>
+                                                    </TableRow>
                                                 )
                                             )}
-                                        </tbody>
-                                    </table>
-                                </div> */}
+                                        </TableBody>
+                                    </Table>
+                                </div>
 
                                 {/* Render Grade History (cdrawGradeHist) */}
-                                {/* <div style={{ marginBottom: "1rem" }}>
-                                    <h4>Grade History</h4>
-                                    <table
-                                        style={{
-                                            width: "100%",
-                                            borderCollapse: "collapse",
-                                        }}
-                                    >
-                                        <thead>
-                                            <tr>
-                                                <th>Grade Name</th>
-                                                <th>Transactions</th>
-                                                <th>Volume</th>
-                                                <th>Value</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
+                                <div className="space-y-4">
+                                    <p>
+                                        <strong>Grade History</strong>
+                                    </p>
+                                    <Table aria-label="Grade History">
+                                        <TableHeader>
+                                            <TableColumn>
+                                                Grade Name
+                                            </TableColumn>
+                                            <TableColumn>
+                                                Transactions
+                                            </TableColumn>
+                                            <TableColumn>Volume</TableColumn>
+                                            <TableColumn>Value</TableColumn>
+                                        </TableHeader>
+                                        <TableBody>
                                             {selectedCashDrawReport.cdrawGradeHist.map(
                                                 (gradeHistory, index) => (
-                                                    <tr key={index}>
-                                                        <td>
+                                                    <TableRow key={index}>
+                                                        <TableCell>
                                                             {
                                                                 gradeHistory.Grade_Name
                                                             }
-                                                        </td>
-                                                        <td>
+                                                        </TableCell>
+                                                        <TableCell>
                                                             {
                                                                 gradeHistory.CDrawGrade_Trs
                                                             }
-                                                        </td>
-                                                        <td>
+                                                        </TableCell>
+                                                        <TableCell>
                                                             {
                                                                 gradeHistory.CDrawGrade_Vol
                                                             }
-                                                        </td>
-                                                        <td>
+                                                        </TableCell>
+                                                        <TableCell>
                                                             {
                                                                 gradeHistory.CDrawGrade_Val
                                                             }
-                                                        </td>
-                                                    </tr>
+                                                        </TableCell>
+                                                    </TableRow>
                                                 )
                                             )}
-                                        </tbody>
-                                    </table>
-                                </div> */}
+                                        </TableBody>
+                                    </Table>
+                                </div>
 
                                 {/* Render Department History (cdrawDeptHist) */}
-                                <div style={{ marginBottom: "1rem" }}>
-                                    <h4>Department History</h4>
-                                    <table
-                                        style={{
-                                            width: "100%",
-                                            borderCollapse: "collapse",
-                                        }}
-                                    >
-                                        <thead>
-                                            <tr>
-                                                <th>Department Name</th>
-                                                <th>Quantity Sold</th>
-                                                <th>Value Sold</th>
-                                                <th>Quantity Refunded</th>
-                                                <th>Value Refunded</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
+                                <div className="space-y-4">
+                                    <p>
+                                        <strong>Department History</strong>
+                                    </p>
+                                    <Table aria-label="Department History">
+                                        <TableHeader>
+                                            <TableColumn>
+                                                Department Name
+                                            </TableColumn>
+                                            <TableColumn>
+                                                Quantity Sold
+                                            </TableColumn>
+                                            <TableColumn>
+                                                Value Sold
+                                            </TableColumn>
+                                            <TableColumn>
+                                                Quantity Refunded
+                                            </TableColumn>
+                                            <TableColumn>
+                                                Value Refunded
+                                            </TableColumn>
+                                        </TableHeader>
+                                        <TableBody>
                                             {selectedCashDrawReport.cdrawDeptHist.map(
                                                 (deptHistory, index) => (
-                                                    <tr key={index}>
-                                                        <td>
+                                                    <TableRow key={index}>
+                                                        <TableCell>
                                                             {
                                                                 deptHistory.Dept_Name
                                                             }
-                                                        </td>
-                                                        <td>
+                                                        </TableCell>
+                                                        <TableCell>
                                                             {
                                                                 deptHistory.CDrawDept_Qty_Sld
                                                             }
-                                                        </td>
-                                                        <td>
+                                                        </TableCell>
+                                                        <TableCell>
                                                             {
                                                                 deptHistory.CDrawDept_Val_Sld
                                                             }
-                                                        </td>
-                                                        <td>
+                                                        </TableCell>
+                                                        <TableCell>
                                                             {
                                                                 deptHistory.CDrawDept_Qty_Ref
                                                             }
-                                                        </td>
-                                                        <td>
+                                                        </TableCell>
+                                                        <TableCell>
                                                             {
                                                                 deptHistory.CDrawDept_Val_Ref
                                                             }
-                                                        </td>
-                                                    </tr>
+                                                        </TableCell>
+                                                    </TableRow>
                                                 )
                                             )}
-                                        </tbody>
-                                    </table>
+                                        </TableBody>
+                                    </Table>
                                 </div>
 
                                 {/* Render Manual Grade History (manualCdrawGradeHist) */}
-                                {/* <div style={{ marginBottom: "1rem" }}>
-                                    <h4>Manual Grade History</h4>
-                                    <table
-                                        style={{
-                                            width: "100%",
-                                            borderCollapse: "collapse",
-                                        }}
-                                    >
-                                        <thead>
-                                            <tr>
-                                                <th>Grade Name</th>
-                                                <th>Transactions</th>
-                                                <th>Volume</th>
-                                                <th>Value</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
+                                <div className="space-y-4">
+                                    <p>
+                                        <strong>Manual Grade History</strong>
+                                    </p>
+                                    <Table aria-label="Manual Grade History">
+                                        <TableHeader>
+                                            <TableColumn>
+                                                Grade Name
+                                            </TableColumn>
+                                            <TableColumn>
+                                                Transactions
+                                            </TableColumn>
+                                            <TableColumn>Volume</TableColumn>
+                                            <TableColumn>Value</TableColumn>
+                                        </TableHeader>
+                                        <TableBody>
                                             {selectedCashDrawReport.manualCdrawGradeHist.map(
                                                 (manualGradeHistory, index) => (
-                                                    <tr key={index}>
-                                                        <td>
+                                                    <TableRow key={index}>
+                                                        <TableCell>
                                                             {
                                                                 manualGradeHistory.Grade_Name
                                                             }
-                                                        </td>
-                                                        <td>
+                                                        </TableCell>
+                                                        <TableCell>
                                                             {
                                                                 manualGradeHistory.CDrawGrade_Trs
                                                             }
-                                                        </td>
-                                                        <td>
+                                                        </TableCell>
+                                                        <TableCell>
                                                             {
                                                                 manualGradeHistory.CDrawGrade_Vol
                                                             }
-                                                        </td>
-                                                        <td>
+                                                        </TableCell>
+                                                        <TableCell>
                                                             {
                                                                 manualGradeHistory.CDrawGrade_Val
                                                             }
-                                                        </td>
-                                                    </tr>
+                                                        </TableCell>
+                                                    </TableRow>
                                                 )
                                             )}
-                                        </tbody>
-                                    </table>
-                                </div> */}
+                                        </TableBody>
+                                    </Table>
+                                </div>
                             </>
                         ) : (
                             <p>No data available.</p>
@@ -772,11 +837,11 @@ export default function ReportsIndex() {
 
                     <Divider />
                     <ModalFooter>
-                        {/* <Button
+                        <Button
                             color="primary"
                             onPress={() => {
                                 axios
-                                    .post("/print-cash-draw", {
+                                    .post("/print-cash-draw-report", {
                                         data: JSON.stringify(
                                             selectedCashDrawReport,
                                             null,
@@ -805,13 +870,13 @@ export default function ReportsIndex() {
                             }}
                         >
                             Print
-                        </Button> */}
+                        </Button>
 
-                        <Button
+                        {/* <Button
                             color="primary"
                             onPress={() => {
                                 axios
-                                    .post("/display-in-notepad", {
+                                    .post("/open-cash-draw-notepad", {
                                         data: JSON.stringify(
                                             selectedCashDrawReport,
                                             null,
@@ -837,7 +902,7 @@ export default function ReportsIndex() {
                             }}
                         >
                             Open in Notepad
-                        </Button>
+                        </Button> */}
 
                         <Button
                             color="danger"

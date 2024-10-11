@@ -10,3 +10,4 @@ Route::middleware('auth.basic')->group(function () {
 
 Route::get('/transactions', [APIController::class, 'getTransactions']);
 Route::post('/transactions', [APIController::class, 'saveTransaction']);
+Route::post('/add-trans', [TransactionController::class, 'addNewTransaction']);

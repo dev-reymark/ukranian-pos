@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ElectricJournal;
+use App\Models\HoseDelivery;
 use App\Models\Period;
 use Illuminate\Http\Request;
 use App\Models\Transaction;
@@ -28,6 +29,144 @@ class TransactionController extends Controller
 {
     private $printer;
     private $lineLength = 40;
+
+    public function addNewTransaction(Request $request)
+    {
+        
+        // Log the incoming request data
+        Log::info('Adding new transaction', $request->all());
+
+        // Retrieve the input data from the request
+        $cashierID = $request->input('cashierID');
+        $subAccID = $request->input('subAccID');
+        $posID = $request->input('posID');
+        $num = $request->input('num');
+
+        $cashierID = $request->input('cashierID');
+        $subAccID = $request->input('subAccID');
+        $posID = $request->input('posID');
+        $num = $request->input('num');
+
+        // Set the timezone and get the current timestamp
+        date_default_timezone_set('Asia/Manila');
+        $date = now(); // Laravel's helper for current timestamp
+
+        $periodID = $request->input('periodID');
+        $taxTotal = $request->input('taxTotal');
+        $saleTotal = $request->input('saleTotal');
+        $birReceiptType = $request->input('birReceiptType');
+        $birTransNum = $request->input('birTransNum');
+        $poNum = $request->input('poNum');
+        $plateNum = $request->input('plateNum');
+        $transRefund = $request->input('transRefund');
+        $subAccPmt = $request->input('subAccPmt');
+        $itemsString = $request->input('items');
+        $vehicleTypeID = $request->input('vehicleTypeID');
+        $odometer = $request->input('odometer');
+        $isNormalTrans = $request->input('isNormalTrans');
+        $isManual = $request->input('isManual');
+        $isZeroRated = $request->input('isZeroRated');
+        $isRefund = $request->input('isRefund');
+        $attendantID = $request->input('attendantID');
+
+        $customerName = $request->input('customerName');
+        $address = $request->input('address');
+        $TIN = $request->input('TIN');
+        $businessStyle = $request->input('businessStyle');
+        $cardNumber = $request->input('cardNumber');
+        $approvalCode = $request->input('approvalCode');
+        $bankCode = $request->input('bankCode');
+        $isRefundOrigTransNum = $request->input('isRefundOrigTransNum');
+        $type = $request->input('type');
+
+        // Decode the items JSON string
+        $items = json_decode($itemsString);
+
+        // Handle "null" values from the input
+        $subAccID = $subAccID === "null" ? null : $subAccID;
+        $poNum = $poNum === "null" ? null : $poNum;
+        $plateNum = $plateNum === "null" ? null : $plateNum;
+        $vehicleTypeID = $vehicleTypeID === "null" ? null : $vehicleTypeID;
+        $attendantID = $attendantID === "null" ? null : $attendantID;
+        $odometer = $odometer === "null" ? null : $odometer;
+        $birReceiptType = $birReceiptType === "null" ? null : $birReceiptType;
+        $customerName = $customerName === "null" ? null : $customerName;
+        $address = $address === "null" ? null : $address;
+        $TIN = $TIN === "null" ? null : $TIN;
+        $businessStyle = $businessStyle === "null" ? null : $businessStyle;
+        $cardNumber = $cardNumber === "null" ? null : $cardNumber;
+        $approvalCode = $approvalCode === "null" ? null : $approvalCode;
+        $bankCode = $bankCode === "null" ? null : $bankCode;
+        $type = $type === "null" ? null : $type;
+
+        $transactionService = new Transaction();
+        $returnData = $transactionService->addNewTransaction(
+            $cashierID,
+            $subAccID,
+            $posID,
+            $date,
+            $periodID,
+            $taxTotal,
+            $saleTotal,
+            $birReceiptType,
+            $poNum,
+            $plateNum,
+            $transRefund,
+            $subAccPmt,
+            $items,
+            $vehicleTypeID,
+            $odometer,
+            $isNormalTrans,
+            $isManual,
+            $isZeroRated,
+            $customerName,
+            $address,
+            $TIN,
+            $businessStyle,
+            $cardNumber,
+            $approvalCode,
+            $bankCode,
+            $type,
+            $isRefund,
+            $attendantID,
+            $isRefundOrigTransNum
+        );
+
+        // Handle response based on return data
+        if (is_null($returnData)) {
+            Log::warning('Transaction returned null', ['cashierID' => $cashierID, 'date' => $date]);
+            return response()->json([
+                'statusCode' => 1,
+                'statusDescription' => 'Success safedrop',
+                'data' => $returnData
+            ]);
+        }
+
+        if (!$returnData) {
+            Log::error('Error adding transaction', ['cashierID' => $cashierID, 'date' => $date]);
+            return response()->json([
+                'statusCode' => 0,
+                'statusDescription' => 'Error',
+                'data' => $returnData
+            ]);
+        }
+
+        if ($returnData && $isRefund) {
+            Log::info('Refund transaction added successfully', ['cashierID' => $cashierID, 'date' => $date]);
+            return response()->json([
+                'statusCode' => 1,
+                'statusDescription' => 'Success refund',
+                'data' => $returnData
+            ]);
+        }
+
+        Log::info('Transaction added successfully', ['cashierID' => $cashierID, 'date' => $date]);
+        return response()->json([
+            'statusCode' => 1,
+            'statusDescription' => 'Success',
+            'data' => $returnData
+        ]);
+    }
 
     public function storeTransaction(Request $request)
     {
@@ -258,7 +397,7 @@ class TransactionController extends Controller
             }
 
             // Update Is_Sold to 1 for relevant PumpDeliveries
-            PumpDelivery::whereIn('Delivery_ID', $deliveryIds)
+            HoseDelivery::whereIn('Delivery_ID', $deliveryIds)
                 ->update(['Is_Sold' => 1]);
 
             DB::commit();

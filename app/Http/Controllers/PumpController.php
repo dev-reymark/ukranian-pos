@@ -5,11 +5,14 @@ namespace App\Http\Controllers;
 use App\Jobs\SetFuelGradesConfigurationJob;
 use App\Models\Grade;
 use App\Models\Hose;
+use App\Models\HoseDelivery;
 use App\Models\PriceProfile;
 use App\Models\PumpDelivery;
+use App\Models\Tank;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -19,9 +22,76 @@ class PumpController extends Controller
     {
         return config('services.pts_api.url');
     }
+    public function initializePump(
+        Grade $grade,
+        Hose $hose,
+        HoseDelivery $hoseDelivery,
+        PriceProfile $priceProfile,
+        Tank $tank
+    ) {
+
+        // Step 2: Initialize Fuel Grades Configuration (populates Grades and Price Profiles in the database)
+        $fuelGrades = $this->getFuelGradesConfiguration();
+        if (empty($fuelGrades)) {
+            return response()->json(['error' => 'Failed to fetch or initialize Fuel Grades configuration'], 400);
+        }
+        // Step 1: Initialize Tanks Configuration (populates Tanks in the database)
+        $tanks = $this->getTanksConfiguration();
+        if (empty($tanks)) {
+            return response()->json(['error' => 'Failed to fetch or initialize Tanks configuration'], 400);
+        }
+
+        // Step 3: Initialize Pump Nozzles Configuration (populates Pumps and Hoses in the database)
+        $pumpNozzles = $this->getPumpNozzlesConfiguration(new Request()); // Assuming a request is available
+        if ($pumpNozzles->status() !== 200) {
+            return response()->json(['error' => 'Failed to initialize Pump Nozzles configuration'], 400);
+        }
+
+        // Step 4: Get the Tank corresponding to the Grade from the Tanks table
+        $tank = DB::table('Tanks')->where('Grade_ID', $grade->Grade_ID)->first();
+        if (!$tank) {
+            return response()->json(['error' => 'Invalid Tank for the given Grade'], 400);
+        }
+
+        // Step 5: Get the Hose corresponding to the Tank from the Hoses table
+        $hose = DB::table('Hoses')->where('Tank_ID', $tank->Tank_ID)->first();
+        if (!$hose) {
+            return response()->json(['error' => 'Invalid Hose for the given Tank'], 400);
+        }
+
+        // Step 6: Get the Hose Delivery corresponding to the Hose_ID from the Hose_Delivery table
+        $hoseDelivery = DB::table('Hose_Delivery')
+            ->where('Hose_ID', $hose->Hose_ID)
+            ->first();
+
+        if (!$hoseDelivery) {
+            return response()->json(['error' => 'Invalid Hose Delivery for the given Hose'], 400);
+        }
+
+        // Step 7: Get the Pump corresponding to the Hose from the Pumps table
+        $pump = DB::table('Pumps')->where('Pump_ID', $hose->Pump_ID)->first();
+        if (!$pump) {
+            return response()->json(['error' => 'Invalid Pump for the given Hose'], 400);
+        }
+
+        // Step 8: Prepare the data for the pump initialization
+        $data = [
+            'Grade' => $grade->Grade_ID,
+            'Hose' => $hose->Hose_ID,
+            'HoseDelivery' => $hoseDelivery->Delivery_ID,
+            'Pump' => $pump->Pump_ID,
+            'Tank' => $tank->Tank_ID,
+            'PriceProfile' => $priceProfile->Price_Profile_ID,
+        ];
+
+        return response()->json([
+            'message' => 'Pump initialized successfully',
+            'data' => $data
+        ]);
+    }
     public function getPumpStatus(Request $request)
     {
-        $pumpCount = 10;
+        $pumpCount = 4;
         $packets = [];
 
         // Create packets for all pumps
@@ -48,19 +118,20 @@ class PumpController extends Controller
             $data = $response->json();
             $packets = $data['Packets'];
 
-            // Fetch the fuel grades configuration
+            // Fetch the fuel grades, nozzles, and tanks configuration
             $fuelGrades = $this->getFuelGradesConfigurationData();
+            $nozzleConfig = $this->getNozzlesConfigurationData();
+            // $tanksConfig = $this->getTanksConfiguration();
+
+            // Prepare mappings for fuel grades and prices
             $fuelGradeMap = [];
             $fuelGradePrices = [];
-
             foreach ($fuelGrades as $grade) {
                 $fuelGradeMap[$grade['Id']] = $grade['Name'];
                 $fuelGradePrices[$grade['Id']] = $grade['Price'];
             }
 
-            // Fetch the nozzles configuration
-            $nozzleConfig = $this->getNozzlesConfigurationData();
-
+            // Process each pump status packet
             foreach ($packets as &$packet) {
                 if ($packet['Type'] === 'PumpEndOfTransactionStatus') {
                     $pumpData = $packet['Data'];
@@ -80,21 +151,41 @@ class PumpController extends Controller
 
                     Log::info('Saving Pump Data:', $pumpData);
 
-                    // Save pumpData to the database
-                    PumpDelivery::create([
-                        'Pump' => $pumpData['Pump'],
-                        'Nozzle' => $pumpData['Nozzle'],
-                        'Volume' => $pumpData['Volume'],
-                        'Price' => $pumpData['Price'],
-                        'Amount' => $pumpData['Amount'],
-                        'Transaction' => $pumpData['Transaction'],
-                        'User' => $pumpData['User'],
+                    // Save to HoseDelivery table
+                    $latestDeliveryId = HoseDelivery::max('Delivery_ID'); // Get the maximum Delivery_ID
+                    $newDeliveryId = ($latestDeliveryId !== null) ? $latestDeliveryId + 1 : 1; // Start at 1 if there are no entries
+
+                    DB::table('Hose_Delivery')->insert([
+                        'Delivery_ID' => $newDeliveryId,
+                        'Hose_ID' => $pumpData['Nozzle'],
+                        'Pump_ID' => $pumpData['Pump'],
+                        'Price_Level' => 1,
+                        'Delivery_Volume' => $pumpData['Volume'],
+                        'Del_Cost_Price' => $pumpData['Price'],
+                        'Delivery_Value' => $pumpData['Amount'],
+                        'Transaction_ID' => $pumpData['Transaction'],
                         'Is_Sold' => 0,
                         'FuelGradeName' => $pumpData['FuelGradeName'] ?? null,
                         'FuelGradePrice' => $pumpData['FuelGradePrice'] ?? null,
                     ]);
 
-                    // Close the transaction
+                    // Calculate the new totals
+                    $volumeTotal = DB::table('Hose_Delivery')
+                        ->where('Hose_ID', $pumpData['Nozzle'])
+                        ->sum('Delivery_Volume');
+
+                    $moneyTotal = DB::table('Hose_Delivery')
+                        ->where('Hose_ID', $pumpData['Nozzle'])
+                        ->sum('Delivery_Value');
+
+                    // Update the Hoses table
+                    DB::table('Hoses')
+                        ->where('Hose_ID', $pumpData['Nozzle'])
+                        ->update([
+                            'Volume_Total' => $volumeTotal,
+                            'Money_Total' => $moneyTotal,
+                        ]);
+
                     $this->closeTransaction($pumpData['Pump'], $pumpData['Transaction']);
                 }
                 if (isset($packet['Data']['NozzleUp'])) {
@@ -113,6 +204,14 @@ class PumpController extends Controller
             }
 
             return response()->json($packets);
+
+            // // Merge tanks configuration into the response
+            // return response()->json([
+            //     'Packets' => $packets,
+            //     // 'FuelGrades' => $fuelGrades,
+            //     // 'Nozzles' => $nozzleConfig,
+            //     // 'Tanks' => $tanksConfig,
+            // ]);
         } else {
             return response()->json([
                 'error' => 'Failed to fetch pump status',
@@ -120,7 +219,6 @@ class PumpController extends Controller
             ], $response->status());
         }
     }
-
     private function closeTransaction($pumpId, $transactionNumber)
     {
         $response = Http::withHeaders([
@@ -144,8 +242,6 @@ class PumpController extends Controller
             Log::error('Failed to close transaction for pump ' . $pumpId . ' and transaction ' . $transactionNumber);
         }
     }
-
-
     private function getFuelGradesConfigurationData()
     {
         $response = Http::withHeaders([
@@ -168,8 +264,6 @@ class PumpController extends Controller
 
         return [];
     }
-
-
     private function getNozzlesConfigurationData()
     {
         $response = Http::withHeaders([
@@ -199,8 +293,185 @@ class PumpController extends Controller
 
         return [];
     }
+    public function getTanksConfiguration()
+    {
+        $response = Http::withHeaders([
+            'Content-Type' => 'application/json',
+            'Authorization' => 'Basic ' . base64_encode('admin:admin')
+        ])->post($this->getApiUrl(), [
+            'Protocol' => 'jsonPTS',
+            'Packets' => [
+                [
+                    'Id' => 1,
+                    'Type' => 'GetTanksConfiguration'
+                ]
+            ]
+        ]);
 
+        if ($response->successful()) {
+            $data = $response->json();
+            $tanks = $data['Packets'][0]['Data']['Tanks'] ?? [];
 
+            // Insert or update tanks in the database
+            foreach ($tanks as $tankData) {
+                // Check if the tank already exists
+                $existingTank = DB::select('SELECT * FROM Tanks WHERE Tank_ID = ?', [$tankData['Id']]);
+
+                if (!empty($existingTank)) {
+                    // Update the existing tank
+                    DB::update('UPDATE Tanks SET Grade_ID = ?, Tank_Number = ?, Is_Enabled = ?, Capacity = ?, Gauge_Level = ? WHERE Tank_ID = ?', [
+                        $tankData['FuelGradeId'],  // Grade_ID
+                        $tankData['Id'],           // Tank_Number
+                        1,                         // Is_Enabled (set to 1 for enabled)
+                        1000.00,                   // Static Capacity value
+                        10.00,                     // Static Gauge_Level value
+                        $tankData['Id'],           // Tank_ID for the WHERE clause
+                    ]);
+                } else {
+                    // Insert the new tank
+                    DB::insert('INSERT INTO Tanks (Tank_ID, Grade_ID, Tank_Number, Is_Enabled, Capacity, Gauge_Level) VALUES (?, ?, ?, ?, ?, ?)', [
+                        $tankData['Id'],            // Custom Tank_ID
+                        $tankData['FuelGradeId'],   // Grade_ID
+                        $tankData['Id'],            // Tank_Number
+                        1,                          // Is_Enabled (set to 1 for enabled)
+                        1000.00,                    // Static Capacity value
+                        10.00,                      // Static Gauge_Level value
+                    ]);
+                }
+            }
+
+            return $tanks; // Optional: return the tanks data if needed
+        }
+
+        return [];
+    }
+    public function getPumpNozzlesConfiguration(Request $request)
+    {
+        $packet = [
+            'Id' => 1,
+            'Type' => 'GetPumpNozzlesConfiguration'
+        ];
+
+        // Fetch the pump nozzles configuration
+        $response = Http::withHeaders([
+            'Content-Type' => 'application/json',
+            'Authorization' => 'Basic ' . base64_encode('admin:admin')
+        ])->post($this->getApiUrl(), [
+            'Protocol' => 'jsonPTS',
+            'Packets' => [$packet]
+        ]);
+
+        if ($response->successful()) {
+            $data = $response->json();
+            $pumpNozzles = $data['Packets'][0]['Data']['PumpNozzles'] ?? [];
+
+            // Fetch the fuel grades
+            $fuelGrades = $this->getFuelGradesConfigurationData();
+            $fuelGradesMap = [];
+
+            foreach ($fuelGrades as $fuelGrade) {
+                $fuelGradesMap[$fuelGrade['Id']] = [
+                    'Name' => $fuelGrade['Name'],
+                    'Price' => $fuelGrade['Price'],
+                ];
+            }
+
+            // Prepare the response data and save hoses
+            $responseData = [];
+
+            foreach ($pumpNozzles as $nozzle) {
+                $pumpId = $nozzle['PumpId'];
+
+                // Check if pump already exists in the Pumps table
+                $existingPump = DB::table('Pumps')->where('Pump_ID', $pumpId)->first();
+
+                if (!$existingPump) {
+                    // Get the maximum Logical_Number and increment it to ensure uniqueness
+                    $maxLogicalNumber = DB::table('Pumps')->max('Logical_Number');
+                    $newLogicalNumber = ($maxLogicalNumber !== null) ? $maxLogicalNumber + 1 : 1; // Start at 1 if no pumps exist
+
+                    // Get the maximum Polling_Address and increment it to ensure uniqueness
+                    $maxPollingAddress = DB::table('Pumps')->max('Polling_Address');
+                    $newPollingAddress = ($maxPollingAddress !== null) ? $maxPollingAddress + 1 : 1; // Start at 1 if no pumps exist
+
+                    // Insert the pump if it doesn't exist
+                    DB::table('Pumps')->insert([
+                        'Pump_ID' => $pumpId,
+                        'Pump_Type_ID' => 1,
+                        'Loop_ID' => 1,
+                        'Polling_Address' => $newPollingAddress, // Use the new unique polling address
+                        'Logical_Number' => $newLogicalNumber, // Use the new unique logical number
+                        'Pump_Name' => 'Pump ' . $pumpId, // Example pump name, modify as needed
+                        'Is_Enabled' => 1, // Assuming pump is enabled
+                        // Add other necessary fields with default values or null
+                    ]);
+                }
+
+                // Ensure FuelGradeIds is set and is an array
+                if (isset($nozzle['FuelGradeIds']) && is_array($nozzle['FuelGradeIds'])) {
+                    foreach ($nozzle['FuelGradeIds'] as $index => $gradeId) {
+                        if ($gradeId !== 0) {
+                            // Prepare the data for the hose entry
+                            $hoseData = [
+                                'Pump_ID' => $pumpId,
+                                'Grade_ID' => $gradeId,
+                                'Tank_ID' => $nozzle['TankIds'][$index] ?? null,
+                                'Hose_number' => $index + 1, // Example hose number
+                                'Volume_Total' => 0, // Initialize as needed
+                                'Mechanical_Total' => 0,
+                                'Money_Total' => 0,
+                                'Theoretical_Total' => 0,
+                                'Volume_Total2' => 0,
+                                'Money_Total2' => 0,
+                                'Theoretical_Total2' => 0,
+                                'Blend_Type' => 0, // Set if necessary
+                                'Volume_Total_Turnover_Correction' => 0,
+                                'Money_Total_Turnover_Correction' => 0,
+                                'Volume_Total2_Turnover_Correction' => 0,
+                                'Volume_Total_State_ID' => null,
+                                'Money_Total_State_ID' => null,
+                                'Volume_Total2_State_ID' => null,
+                                'Deleted' => 0, // Set if necessary
+                                'Volume_Total1' => 0,
+                                'Money_Total1' => 0,
+                                'Is_Enabled' => 1, // Assuming the hose is enabled by default
+                            ];
+
+                            // Check if the hose already exists
+                            $existingHose = DB::table('Hoses')
+                                ->where('Pump_ID', $pumpId)
+                                ->where('Grade_ID', $gradeId)
+                                ->first();
+
+                            if ($existingHose) {
+                                // Update the existing hose record
+                                DB::table('Hoses')
+                                    ->where('Hose_ID', $existingHose->Hose_ID)
+                                    ->update($hoseData);
+                            } else {
+                                // Get the maximum existing Hose_ID and increment by 1
+                                $latestHoseId = DB::table('Hoses')->max('Hose_ID');
+                                $newHoseId = ($latestHoseId !== null) ? $latestHoseId + 1 : 1; // Start at 1 if there are no entries
+
+                                // Save the nozzle information as a new hose using raw query
+                                DB::table('Hoses')->insert(array_merge(['Hose_ID' => $newHoseId], $hoseData));
+                            }
+                        }
+                    }
+                }
+            }
+
+            return response()->json([
+                'Pumps' => $responseData,
+                'FuelGrades' => $fuelGrades,
+            ]);
+        } else {
+            return response()->json([
+                'error' => 'Failed to fetch pump nozzles configuration',
+                'message' => $response->body()
+            ], $response->status());
+        }
+    }
     public function getFuelGradesConfiguration()
     {
         $response = Http::withHeaders([
@@ -225,7 +496,7 @@ class PumpController extends Controller
                     $gradeData = [
                         'Grade_ID' => $fuelGrade['Id'],
                         'Grade_Name' => trim($fuelGrade['Name']),
-                        // 'Price_Profile_ID' => $fuelGrade['Id'],
+                        'Price_Profile_ID' => $fuelGrade['Id'],
                         'Grade_Description' => trim($fuelGrade['Name']),
                     ];
 
@@ -233,6 +504,16 @@ class PumpController extends Controller
                     Grade::updateOrCreate(
                         ['Grade_ID' => $gradeData['Grade_ID']],
                         $gradeData
+                    );
+
+                    // Initialize or update the Price Profile
+                    PriceProfile::updateOrCreate(
+                        ['Price_Profile_ID' => $fuelGrade['Id']],
+                        [
+                            'Price_Profile_Name' => $fuelGrade['Name'] . ':' . $fuelGrade['Id'],
+                            'Grade_Price' => $fuelGrade['Price'] ?? 0,
+                            'Parent_Grade_ID' => $fuelGrade['Id'],
+                        ]
                     );
                 }
             } else {
@@ -242,14 +523,9 @@ class PumpController extends Controller
             Log::error('Failed to fetch fuel grades. Response: ' . $response->body());
         }
 
-        if ($response->successful()) {
-            $data = $response->json();
-            return $data['Packets'][0]['Data']['FuelGrades'] ?? [];
-        }
-
-        return [];
+        // Return the fetched fuel grades
+        return $fuelGrades ?? [];
     }
-
     public function setFuelGradesConfiguration(Request $request)
     {
         Log::info('SetFuelGrades payload:', $request->all());
@@ -313,7 +589,6 @@ class PumpController extends Controller
                         'Rows_Affected' => $updateResult,
                     ]);
                 }
-                
             }
 
             Log::info('Successfully stored all selected price profiles and updated grades.');
@@ -378,7 +653,6 @@ class PumpController extends Controller
             ], 500);
         }
     }
-
     public function authorizePump(Request $request)
     {
         $validated = $request->validate([
@@ -418,7 +692,6 @@ class PumpController extends Controller
             ], $response->status());
         }
     }
-
     public function authorizeAllPumps(Request $request)
     {
         $pumpCount = 32;
@@ -465,7 +738,6 @@ class PumpController extends Controller
             ], $response->status());
         }
     }
-
     public function stopPump(Request $request)
     {
         // Validate the request data
@@ -501,7 +773,6 @@ class PumpController extends Controller
             ], $response->status());
         }
     }
-
     public function stopAllPumps(Request $request)
     {
         $pumpCount = 32;
@@ -534,8 +805,6 @@ class PumpController extends Controller
             ], $response->status());
         }
     }
-
-
     public function emergencyStopPump(Request $request)
     {
         // Validate the request data
@@ -641,13 +910,28 @@ class PumpController extends Controller
             ], $response->status());
         }
     }
-
     public function getPumpDeliveries($pumpId)
     {
-        $pumpDeliveries = PumpDelivery::where('Pump', $pumpId)->get();
-        return response()->json($pumpDeliveries);
+        $pumpDeliveries = HoseDelivery::where('Pump_ID', $pumpId)->get();
+        $formattedDeliveries = $pumpDeliveries->map(function ($delivery) {
+            return [
+                'Delivery_ID' => $delivery->Delivery_ID,
+                'Pump' => $delivery->Pump_ID,
+                'Nozzle' => $delivery->Hose_ID,
+                'Volume' => $delivery->Delivery_Volume,
+                'FuelGradeName' => $delivery->FuelGradeName,
+                'Price' => $delivery->FuelGradePrice,
+                'Amount' => $delivery->Delivery_Value,
+                'Is_Sold' => $delivery->Is_Sold,
+            ];
+        });
+        return response()->json($formattedDeliveries);
     }
-
+    // public function getPumpDeliveries($pumpId)
+    // {
+    //     $pumpDeliveries = PumpDelivery::where('Pump', $pumpId)->get();
+    //     return response()->json($pumpDeliveries);
+    // }
     public function restartPTSController(Request $request)
     {
         // Send the HTTP request to restart the PTS controller
